@@ -464,7 +464,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
             <div style="font-size:11px; color:#64748b; margin-top:4px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
             <div style="margin-top:8px; display:flex; gap:6px;">
               <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
-              <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
+              <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
             </div>
           </div>
         `).join('')}
@@ -612,7 +612,9 @@ function scrollToCriteriaOnPage(cId) {
     // Find the item row in the panel and scroll to it
     const rowEl = shadow.querySelector(`.chk-item[data-cid="${cId}"]`)?.closest('.item-row');
     if (rowEl) {
-      rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof rowEl.scrollIntoView === 'function') {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       const origBg = rowEl.style.backgroundColor;
       rowEl.style.transition = 'background-color 0.4s ease';
       rowEl.style.backgroundColor = '#fef08a';
@@ -622,39 +624,59 @@ function scrollToCriteriaOnPage(cId) {
     }
   }
 
-  // 2. Scroll on the main iCTSV webpage
-  let webTarget = document.querySelector(`[data-cid="${cId}"], [id*="${cId}"]`);
+  // 2. Scroll on the main iCTSV webpage to the EXACT leaf criteria text element
+  if (!currentAnalysisState || !currentAnalysisState.allItems) return;
+  const item = currentAnalysisState.allItems.find(i => i.id == cId);
+  if (!item || !item.name) return;
 
-  if (!webTarget && currentAnalysisState && currentAnalysisState.allItems) {
-    const item = currentAnalysisState.allItems.find(i => i.id == cId);
-    if (item && item.name) {
-      const cleanName = item.name.trim();
-      const candidates = Array.from(document.querySelectorAll('tr, div, li, td, p, span'));
-      for (const node of candidates) {
-        if (node.children.length <= 2 && node.textContent && node.textContent.includes(cleanName)) {
-          webTarget = node;
-          break;
-        }
+  const cname = item.name.trim();
+  const searchPrefix = cname.substring(0, Math.min(18, cname.length));
+
+  // Check if already tagged or has explicit attribute
+  let exactTarget = document.querySelector(`[data-hust-cid="${cId}"], [data-cid="${cId}"]`);
+
+  if (!exactTarget) {
+    // Find deepest leaf element on page matching searchPrefix
+    const allNodes = Array.from(document.querySelectorAll('td, th, span, div, p, label, b, strong, a'));
+    let maxDepth = -1;
+
+    for (const node of allNodes) {
+      if (node.closest('#hust-drl-helper-root')) continue;
+
+      const directText = Array.from(node.childNodes)
+        .filter(n => n.nodeType === Node.TEXT_NODE)
+        .map(n => n.textContent.trim())
+        .join(' ');
+
+      const fullText = (node.innerText || node.textContent || '').trim();
+
+      if (directText && directText.includes(searchPrefix)) {
+        exactTarget = node;
+        break;
       }
-      if (!webTarget && cleanName.length > 12) {
-        const subName = cleanName.substring(0, 15);
-        for (const node of candidates) {
-          if (node.children.length <= 2 && node.textContent && node.textContent.includes(subName)) {
-            webTarget = node;
-            break;
-          }
+
+      if (fullText.includes(searchPrefix)) {
+        let depth = 0;
+        let curr = node;
+        while (curr.parentElement) { depth++; curr = curr.parentElement; }
+
+        if (depth > maxDepth && node.children.length <= 2) {
+          maxDepth = depth;
+          exactTarget = node;
         }
       }
     }
   }
 
-  if (webTarget) {
-    webTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const origBg = webTarget.style.backgroundColor;
-    webTarget.style.transition = 'background-color 0.4s ease';
-    webTarget.style.backgroundColor = '#fef08a';
+  if (exactTarget) {
+    if (typeof exactTarget.scrollIntoView === 'function') {
+      exactTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const origBg = exactTarget.style.backgroundColor;
+    exactTarget.style.transition = 'background-color 0.4s ease';
+    exactTarget.style.backgroundColor = '#fef08a';
     setTimeout(() => {
-      webTarget.style.backgroundColor = origBg;
+      exactTarget.style.backgroundColor = origBg;
     }, 2500);
   }
 }
