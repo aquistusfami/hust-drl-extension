@@ -113,12 +113,44 @@ function analyzeConductScore(rawJson) {
     accumulated += item.effectiveGain;
   }
 
+  // Group roadmap by main categories for structured UI rendering
+  const categoryRoadmaps = [];
+  if (rawJson && rawJson.CriteriaTypeDetailsLst) {
+    for (const ct of rawJson.CriteriaTypeDetailsLst) {
+      if (ct.CTId === 11) continue; // Skip penalty category in roadmap UI
+
+      const ctMaxPoint = ct.CTMaxPoint !== undefined ? ct.CTMaxPoint : 100.0;
+      const catItems = items.filter(i => i.ctId === ct.CTId);
+
+      let ctCappedScore = 0;
+      const groupIds = [...new Set(catItems.map(i => i.cgId))];
+      groupIds.forEach(gid => {
+        const gItems = catItems.filter(i => i.cgId === gid);
+        const gRaw = gItems.reduce((sum, i) => sum + i.userPoint, 0);
+        const gMax = gItems[0] ? gItems[0].cgMaxPoint : 100;
+        ctCappedScore += (gMax < 0) ? gRaw : Math.min(gMax, gRaw);
+      });
+      const finalCtScore = (ctMaxPoint < 0) ? ctCappedScore : Math.min(ctMaxPoint, ctCappedScore);
+
+      const catCandidates = candidateItems.filter(i => i.ctId === ct.CTId);
+
+      categoryRoadmaps.push({
+        ctId: ct.CTId,
+        ctName: ct.CTName,
+        ctMaxPoint: ctMaxPoint,
+        currentScore: Math.max(0, finalCtScore),
+        suggestedItems: catCandidates
+      });
+    }
+  }
+
   return {
     currentScore,
     rank,
     targetScore,
     scoreNeeded,
     roadmapItems,
+    categoryRoadmaps,
     allItems: items
   };
 }

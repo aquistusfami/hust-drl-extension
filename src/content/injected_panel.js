@@ -391,25 +391,60 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
   const progressEl = shadow.getElementById('header-progress');
   if (progressEl) progressEl.style.width = `${progressPercent}%`;
 
-  // Update Tab Roadmap in-place
+  // Update Tab Roadmap grouped by Main Categories in-place (or fallback to flat roadmapItems)
   const roadmapContainer = shadow.getElementById('tab-roadmap');
   if (roadmapContainer) {
-    roadmapContainer.innerHTML = `
-      <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Các tiêu chí ưu tiên làm để đạt mốc ${analysis.targetScore}đ:</p>
-      ${(analysis.roadmapItems || []).map(item => `
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div style="font-weight:600; font-size:13px; color:#0f172a; flex:1;">${item.name}</div>
-            <span style="font-size:12px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 8px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
+    if (analysis.categoryRoadmaps && analysis.categoryRoadmaps.length > 0) {
+      roadmapContainer.innerHTML = `
+        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Lộ trình gợi ý theo từng mục lớn để đạt mốc <b>${analysis.targetScore}đ</b>:</p>
+        ${analysis.categoryRoadmaps.map(cat => `
+          <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="background:#f1f5f9; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0;">
+              <div style="font-weight:600; font-size:12px; color:#0f172a; flex:1;">${cat.ctName}</div>
+              <div style="font-size:11px; font-weight:700; color:${cat.currentScore >= cat.ctMaxPoint ? '#16a34a' : '#2563eb'}; background:#ffffff; padding:2px 8px; border-radius:10px; border:1px solid #cbd5e1; white-space:nowrap; margin-left:6px;">
+                ${cat.currentScore} / ${cat.ctMaxPoint}đ
+              </div>
+            </div>
+            <div style="padding:10px 12px;">
+              ${cat.currentScore >= cat.ctMaxPoint ? `
+                <div style="font-size:11px; color:#16a34a; font-weight:500;">✓ Đã đạt kịch trần mục này (${cat.currentScore}/${cat.ctMaxPoint}đ)</div>
+              ` : cat.suggestedItems.length === 0 ? `
+                <div style="font-size:11px; color:#64748b;">Đã tích lũy đủ các mục ưu tiên trong phần này</div>
+              ` : cat.suggestedItems.map(item => `
+                <div class="card" style="margin-bottom:6px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="font-weight:600; font-size:12px; color:#0f172a; flex:1;">${item.name}</div>
+                    <span style="font-size:11px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
+                  </div>
+                  <div style="font-size:11px; color:#64748b; margin-top:2px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
+                  <div style="margin-top:6px; display:flex; gap:6px;">
+                    <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
+                    <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
           </div>
-          <div style="font-size:11px; color:#64748b; margin-top:4px;">${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
-          <div style="margin-top:8px; display:flex; gap:6px;">
-            <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
-            <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
+        `).join('')}
+      `;
+    } else {
+      roadmapContainer.innerHTML = `
+        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Các tiêu chí ưu tiên làm để đạt mốc ${analysis.targetScore}đ:</p>
+        ${(analysis.roadmapItems || []).map(item => `
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div style="font-weight:600; font-size:13px; color:#0f172a; flex:1;">${item.name}</div>
+              <span style="font-size:12px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 8px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
+            <div style="margin-top:8px; display:flex; gap:6px;">
+              <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
+              <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
+            </div>
           </div>
-        </div>
-      `).join('')}
-    `;
+        `).join('')}
+      `;
+    }
   }
 
   // Update Tab 63 Criteria lists in-place
