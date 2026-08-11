@@ -5,8 +5,8 @@ function renderPopupContent(data) {
   if (!data) {
     contentEl.innerHTML = `
       <div style="text-align:center; padding:10px 0;">
-        <p style="font-size:13px; color:#64748b; margin-bottom:12px;">Chưa có dữ liệu từ trang iCTSV.</p>
-        <p style="font-size:12px; color:#94a3b8;">Bấm nút bên dưới để trải nghiệm ngay với dữ liệu mẫu Kỳ 20261.</p>
+        <p style="font-size:13px; color:#64748b; margin-bottom:8px;">Chưa có dữ liệu từ trang iCTSV.</p>
+        <p style="font-size:12px; color:#94a3b8;">Vui lòng mở trang iCTSV để tự động trích xuất điểm.</p>
       </div>
     `;
     return;
@@ -29,8 +29,6 @@ function renderPopupContent(data) {
 }
 
 function initPopup() {
-  const demoBtn = document.getElementById('btn-demo');
-
   if (typeof chrome !== 'undefined' && chrome.runtime) {
     chrome.runtime.sendMessage({ type: 'GET_DRL_DATA' }, (response) => {
       if (response && response.payload) {
@@ -41,22 +39,6 @@ function initPopup() {
     });
   } else {
     renderPopupContent(null);
-  }
-
-  if (demoBtn) {
-    demoBtn.onclick = () => {
-      const sampleJson = typeof sampleDrlRawJson !== 'undefined' ? sampleDrlRawJson : null;
-      const analyzer = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : null;
-
-      if (sampleJson && analyzer) {
-        const analysis = analyzer(sampleJson);
-        renderPopupContent(analysis);
-
-        if (typeof chrome !== 'undefined' && chrome.runtime) {
-          chrome.runtime.sendMessage({ type: 'SAVE_DRL_DATA', payload: analysis });
-        }
-      }
-    };
   }
 }
 
