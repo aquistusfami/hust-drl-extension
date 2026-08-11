@@ -34,14 +34,14 @@ function renderHustDrlPanel(analysis, rawData) {
       padding: 10px 16px;
       border-radius: 24px;
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
       z-index: 999999;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .badge:hover { background: #b91c1c; }
     .panel {
@@ -68,8 +68,8 @@ function renderHustDrlPanel(analysis, rawData) {
     }
     .progress-bar-bg {
       background: rgba(255,255,255,0.3);
-      height: 8px;
-      border-radius: 4px;
+      height: 6px;
+      border-radius: 3px;
       margin-top: 8px;
       overflow: hidden;
       position: relative;
@@ -134,12 +134,14 @@ function renderHustDrlPanel(analysis, rawData) {
     }
     .level-header {
       font-weight: bold;
-      font-size: 13px;
-      padding: 8px;
-      background: #e2e8f0;
+      font-size: 12px;
+      padding: 6px 10px;
+      background: #f1f5f9;
+      color: #334155;
       border-radius: 6px;
       margin-top: 12px;
       margin-bottom: 6px;
+      border-left: 3px solid #dc2626;
     }
   `;
 
@@ -149,7 +151,7 @@ function renderHustDrlPanel(analysis, rawData) {
 
   const badge = document.createElement('div');
   badge.className = 'badge';
-  badge.innerHTML = `🔴 ${analysis.currentScore}đ - ${analysis.rank.toUpperCase()} | +${analysis.scoreNeeded}đ ➔`;
+  badge.innerHTML = `HUST ĐRL: ${analysis.currentScore}đ (${analysis.rank.toUpperCase()}) | +${analysis.scoreNeeded}đ ➔`;
   shadow.appendChild(badge);
 
   const panel = document.createElement('div');
@@ -157,7 +159,7 @@ function renderHustDrlPanel(analysis, rawData) {
   panel.innerHTML = `
     <div class="panel-header">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0; font-size:16px;">HUST ĐRL Helper (20261)</h3>
+        <h3 style="margin:0; font-size:15px; font-weight:600;">HUST ĐRL Helper (20261)</h3>
         <button id="close-btn" style="background:none; border:none; color:white; font-size:18px; cursor:pointer;">✕</button>
       </div>
       <div style="margin-top:8px; font-size:22px; font-weight:bold;">${analysis.currentScore} / 100đ (${analysis.rank})</div>
@@ -168,25 +170,25 @@ function renderHustDrlPanel(analysis, rawData) {
     </div>
 
     <div class="tab-bar">
-      <button class="tab-btn active" data-tab="tab-roadmap">🚀 Gợi ý Lộ trình</button>
-      <button class="tab-btn" data-tab="tab-all">📋 63 Tiêu chí</button>
-      <button class="tab-btn" data-tab="tab-tips">💡 Mẹo nộp MC</button>
+      <button class="tab-btn active" data-tab="tab-roadmap">Gợi ý Lộ trình</button>
+      <button class="tab-btn" data-tab="tab-all">63 Tiêu chí</button>
+      <button class="tab-btn" data-tab="tab-tips">Mẹo nộp MC</button>
     </div>
 
     <div class="panel-body">
       <!-- Tab 1: Roadmap -->
       <div id="tab-roadmap" class="tab-content active">
-        <p style="font-size:12px; color:#475569; margin-top:0;">Top tiêu chí <b>dễ làm nhất</b> để tích thêm +${analysis.scoreNeeded}đ:</p>
+        <p style="font-size:12px; color:#475569; margin-top:0;">Các tiêu chí ưu tiên làm để đạt mốc ${analysis.targetScore}đ:</p>
         ${(analysis.roadmapItems || []).map(item => `
           <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
               <div style="font-weight:bold; font-size:13px; color:#1e293b; flex:1;">${item.name}</div>
-              <span style="font-size:12px; font-weight:bold; color:#16a34a; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
+              <span style="font-size:12px; font-weight:bold; color:#15803d; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
             </div>
             <div style="font-size:11px; color:#64748b; margin-top:4px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng' : 'Cần nộp MC'}</div>
             <div style="margin-top:6px; display:flex; gap:6px;">
-              <button class="btn-scroll" data-cid="${item.id}">🔍 Kéo tới mục</button>
-              <button class="btn-toggle-check" data-cid="${item.id}" style="background:#16a34a; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">✓ Tích đã làm</button>
+              <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
+              <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
             </div>
           </div>
         `).join('')}
@@ -194,45 +196,45 @@ function renderHustDrlPanel(analysis, rawData) {
 
       <!-- Tab 2: All 63 Criteria Interactive Checklist -->
       <div id="tab-all" class="tab-content">
-        <p style="font-size:12px; color:#64748b; margin-top:0;">Tích chọn thử các mục để xem tổng điểm thay đổi thời gian thực:</p>
+        <p style="font-size:12px; color:#64748b; margin-top:0;">Danh sách toàn bộ 63 tiêu chí (tích chọn để thử điểm):</p>
         
-        <div class="level-header" style="background:#dcfce7; color:#15803d;">🌟 Level 1: Cực Dễ / Tự động (11 mục)</div>
+        <div class="level-header">Level 1: Tự động / Bắt buộc (11 mục)</div>
         <div id="level-1-list"></div>
 
-        <div class="level-header" style="background:#e0f2fe; color:#0369a1;">🟢 Level 2: Mức Dễ (13 mục)</div>
+        <div class="level-header">Level 2: Mức Dễ (13 mục)</div>
         <div id="level-2-list"></div>
 
-        <div class="level-header" style="background:#fef3c7; color:#b45309;">🟡 Level 3: Trung Bình (20 mục)</div>
+        <div class="level-header">Level 3: Trung Bình (20 mục)</div>
         <div id="level-3-list"></div>
 
-        <div class="level-header" style="background:#f1f5f9; color:#475569;">🔴 Level 4: Khó / Khen thưởng (14 mục)</div>
+        <div class="level-header">Level 4: Khó / Khen thưởng (14 mục)</div>
         <div id="level-4-list"></div>
       </div>
 
       <!-- Tab 3: Tips -->
       <div id="tab-tips" class="tab-content">
         <div class="card">
-          <b>💉 Hiến máu nhân đạo: +6đ</b>
+          <b>Hiến máu nhân đạo (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Chụp rõ ảnh Giấy chứng nhận hiến máu hoặc mã QR trên ứng dụng Hiến máu.</p>
         </div>
         <div class="card">
-          <b>🏃 Thể dục nâng cao sức khỏe: +4đ</b>
+          <b>Thể dục nâng cao sức khỏe (+4đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Nộp ảnh kết quả chạy bộ từ ứng dụng Strava, VietRace365 hoặc chứng nhận BKRun.</p>
         </div>
         <div class="card">
-          <b>📝 Khảo sát sinh viên: +3đ</b>
+          <b>Khảo sát sinh viên (+3đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Thực hiện khảo sát đánh giá giảng dạy trực tuyến trên eHUST/iCTSV.</p>
         </div>
         <div class="card">
-          <b>🎓 Khóa học kỹ năng bổ trợ / nghề nghiệp: +6đ</b>
+          <b>Khóa học kỹ năng bổ trợ / nghề nghiệp (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Tải lên chứng chỉ hoàn thành khóa đào tạo kỹ năng do Trường/Khoa hoặc đơn vị hợp tác tổ chức.</p>
         </div>
         <div class="card">
-          <b>🌐 Chứng chỉ Ngoại ngữ TOEIC 600+: +6đ</b>
+          <b>Chứng chỉ Ngoại ngữ TOEIC 600+ (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Tải ảnh chụp chứng chỉ quốc tế còn thời hạn lên hệ thống.</p>
         </div>
         <div class="card">
-          <b>💼 Thực tập sinh doanh nghiệp (>30 ngày): +6đ</b>
+          <b>Thực tập sinh doanh nghiệp (>30 ngày) (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Nộp Giấy xác nhận thực tập từ doanh nghiệp có đóng dấu hợp pháp.</p>
         </div>
       </div>
@@ -272,7 +274,7 @@ function renderHustDrlPanel(analysis, rawData) {
         <input type="checkbox" data-cid="${item.id}" ${item.isAchieved ? 'checked' : ''} style="cursor:pointer; margin-top:2px;">
         <div style="flex:1;">
           <div style="font-size:12px; font-weight:600; color:#334155;">${item.name}</div>
-          <div style="font-size:11px; color:#64748b;">Điểm: +${item.maxPoint}đ (${item.isAchieved ? '✓ Đã đạt' : 'Chưa đạt'})</div>
+          <div style="font-size:11px; color:#64748b;">Điểm: +${item.maxPoint}đ (${item.isAchieved ? 'Đã đạt' : 'Chưa đạt'})</div>
         </div>
       `;
       listEl.appendChild(row);

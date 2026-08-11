@@ -42,7 +42,7 @@ describe('Injected Floating Panel Component Tests', () => {
 
     const badge = shadow.querySelector('.badge');
     expect(badge).not.toBeNull();
-    expect(badge.textContent).toContain('🔴 65đ - TRUNG BÌNH | +5đ ➔');
+    expect(badge.textContent).toContain('HUST ĐRL: 65đ (TRUNG BÌNH) | +5đ ➔');
 
     const panel = shadow.querySelector('.panel');
     expect(panel).not.toBeNull();
