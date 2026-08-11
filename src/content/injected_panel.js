@@ -261,7 +261,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
 
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="tab-roadmap">Gợi ý Lộ trình</button>
-        <button class="tab-btn" data-tab="tab-all">63 Tiêu chí</button>
+        <button class="tab-btn" data-tab="tab-all">Tiêu chí</button>
         <button class="tab-btn" data-tab="tab-tips">Mẹo nộp MC</button>
       </div>
 
@@ -269,10 +269,10 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
         <!-- Tab 1: Roadmap -->
         <div id="tab-roadmap" class="tab-content active"></div>
 
-        <!-- Tab 2: All 63 Criteria Interactive Checklist & Tier Customizer -->
+        <!-- Tab 2: All Criteria Interactive Checklist & Tier Customizer -->
         <div id="tab-all" class="tab-content">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <span style="font-size:12px; color:#475569; font-weight:500;">Bảng 63 Tiêu chí rèn luyện</span>
+            <span style="font-size:12px; color:#475569; font-weight:500;">Bảng Tiêu chí rèn luyện</span>
             <button id="btn-reset-tiers" style="background:#ffffff; border:1px solid #cbd5e1; color:#475569; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">Đặt lại nhóm</button>
           </div>
 
@@ -454,7 +454,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
     }
   }
 
-  // Update Tab 63 Criteria lists in-place
+  // Update Tab Criteria lists in-place
   const itemsByLevel = { 1: [], 2: [], 3: [], 4: [] };
   (analysis.allItems || []).forEach(item => {
     const lvl = itemsByLevel[item.level] ? item.level : 3;
