@@ -146,6 +146,21 @@ function renderHustDrlPanel(analysis, rawData) {
       font-size: 11px;
       cursor: pointer;
     }
+    .btn-tier {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #64748b;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .btn-tier.active {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #dc2626;
+      font-weight: bold;
+    }
     .level-header {
       font-weight: bold;
       font-size: 12px;
@@ -212,20 +227,23 @@ function renderHustDrlPanel(analysis, rawData) {
         `).join('')}
       </div>
 
-      <!-- Tab 2: All 63 Criteria Interactive Checklist -->
+      <!-- Tab 2: All 63 Criteria Interactive Checklist & Tier Customizer -->
       <div id="tab-all" class="tab-content ${activeTabIdState === 'tab-all' ? 'active' : ''}">
-        <p style="font-size:12px; color:#64748b; margin-top:0;">Danh sách toàn bộ 63 tiêu chí (tích chọn để thử điểm):</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <p style="font-size:12px; color:#64748b; margin:0;">Tích chọn điểm & tự đổi Level theo ý muốn:</p>
+          <button id="btn-reset-tiers" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">Đặt lại Level</button>
+        </div>
         
-        <div class="level-header">Level 1: Tự động / Bắt buộc (11 mục)</div>
+        <div class="level-header">Level 1: Tự động / Cực Dễ</div>
         <div id="level-1-list"></div>
 
-        <div class="level-header">Level 2: Mức Dễ (13 mục)</div>
+        <div class="level-header">Level 2: Mức Dễ</div>
         <div id="level-2-list"></div>
 
-        <div class="level-header">Level 3: Trung Bình (20 mục)</div>
+        <div class="level-header">Level 3: Trung Bình</div>
         <div id="level-3-list"></div>
 
-        <div class="level-header">Level 4: Khó / Khen thưởng (14 mục)</div>
+        <div class="level-header">Level 4: Khó / Khen thưởng</div>
         <div id="level-4-list"></div>
       </div>
 
@@ -294,11 +312,43 @@ function renderHustDrlPanel(analysis, rawData) {
         <div style="flex:1;">
           <div style="font-size:12px; font-weight:600; color:#334155;">${item.name}</div>
           <div style="font-size:11px; color:#64748b;">Điểm: +${item.maxPoint}đ (${item.isAchieved ? 'Đã đạt' : 'Chưa đạt'})</div>
+          <div style="display:flex; align-items:center; gap:4px; margin-top:4px;">
+            <span style="font-size:10px; color:#94a3b8;">Xếp Level:</span>
+            <button class="btn-tier ${item.level === 1 ? 'active' : ''}" data-cid="${item.id}" data-level="1">L1</button>
+            <button class="btn-tier ${item.level === 2 ? 'active' : ''}" data-cid="${item.id}" data-level="2">L2</button>
+            <button class="btn-tier ${item.level === 3 ? 'active' : ''}" data-cid="${item.id}" data-level="3">L3</button>
+            <button class="btn-tier ${item.level === 4 ? 'active' : ''}" data-cid="${item.id}" data-level="4">L4</button>
+          </div>
         </div>
       `;
       listEl.appendChild(row);
     }
   });
+
+  // Tier level change handler
+  shadow.querySelectorAll('.btn-tier').forEach(btn => {
+    btn.onclick = (e) => {
+      const cid = parseInt(e.target.getAttribute('data-cid'));
+      const lvl = parseInt(e.target.getAttribute('data-level'));
+      const setLevel = typeof setCustomLevel !== 'undefined' ? setCustomLevel : (typeof window !== 'undefined' ? window.setCustomLevel : null);
+      if (setLevel) {
+        setLevel(cid, lvl);
+        reAnalyzeAndRender();
+      }
+    };
+  });
+
+  // Reset custom tiers handler
+  const resetBtn = shadow.getElementById('btn-reset-tiers');
+  if (resetBtn) {
+    resetBtn.onclick = () => {
+      const resetLevels = typeof resetCustomLevels !== 'undefined' ? resetCustomLevels : (typeof window !== 'undefined' ? window.resetCustomLevels : null);
+      if (resetLevels) {
+        resetLevels();
+        reAnalyzeAndRender();
+      }
+    };
+  }
 
   // Checkbox live score toggle event handler
   shadow.querySelectorAll('input[type="checkbox"], .btn-toggle-check').forEach(element => {
@@ -328,6 +378,19 @@ function renderHustDrlPanel(analysis, rawData) {
   });
 }
 
+function reAnalyzeAndRender() {
+  if (!currentRawData) return;
+  const analyzer = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : (typeof window !== 'undefined' ? window.analyzeConductScore : null);
+  if (analyzer) {
+    const updatedAnalysis = analyzer(currentRawData);
+    renderHustDrlPanel(updatedAnalysis, currentRawData);
+
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'SAVE_DRL_DATA', payload: updatedAnalysis });
+    }
+  }
+}
+
 function toggleItemAchievedState(cId) {
   if (!currentRawData) return;
 
@@ -353,16 +416,7 @@ function toggleItemAchievedState(cId) {
     localStorage.setItem('iCTSV_CriteriaData', JSON.stringify(currentRawData));
   } catch (e) {}
 
-  const analyzer = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : (typeof window !== 'undefined' ? window.analyzeConductScore : null);
-  if (analyzer) {
-    const updatedAnalysis = analyzer(currentRawData);
-    renderHustDrlPanel(updatedAnalysis, currentRawData);
-
-    // Save to Extension storage
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({ type: 'SAVE_DRL_DATA', payload: updatedAnalysis });
-    }
-  }
+  reAnalyzeAndRender();
 }
 
 function scrollToCriteriaOnPage(cId) {
