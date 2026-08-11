@@ -2,13 +2,27 @@
 
 let currentAnalysisState = null;
 let currentRawData = null;
+let isPanelOpenState = false;
+let activeTabIdState = 'tab-roadmap';
 
 function renderHustDrlPanel(analysis, rawData) {
   currentAnalysisState = analysis;
   if (rawData) currentRawData = rawData;
 
-  if (document.getElementById('hust-drl-helper-root')) {
-    document.getElementById('hust-drl-helper-root').remove();
+  const existingRoot = document.getElementById('hust-drl-helper-root');
+  if (existingRoot && existingRoot.shadowRoot) {
+    const existingPanel = existingRoot.shadowRoot.querySelector('.panel');
+    if (existingPanel && existingPanel.classList.contains('open')) {
+      isPanelOpenState = true;
+    }
+    const activeTab = existingRoot.shadowRoot.querySelector('.tab-btn.active');
+    if (activeTab) {
+      activeTabIdState = activeTab.getAttribute('data-tab');
+    }
+  }
+
+  if (existingRoot) {
+    existingRoot.remove();
   }
 
   const container = document.createElement('div');
@@ -156,6 +170,10 @@ function renderHustDrlPanel(analysis, rawData) {
 
   const panel = document.createElement('div');
   panel.className = 'panel';
+  if (isPanelOpenState) {
+    panel.classList.add('open');
+  }
+
   panel.innerHTML = `
     <div class="panel-header">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -170,14 +188,14 @@ function renderHustDrlPanel(analysis, rawData) {
     </div>
 
     <div class="tab-bar">
-      <button class="tab-btn active" data-tab="tab-roadmap">Gợi ý Lộ trình</button>
-      <button class="tab-btn" data-tab="tab-all">63 Tiêu chí</button>
-      <button class="tab-btn" data-tab="tab-tips">Mẹo nộp MC</button>
+      <button class="tab-btn ${activeTabIdState === 'tab-roadmap' ? 'active' : ''}" data-tab="tab-roadmap">Gợi ý Lộ trình</button>
+      <button class="tab-btn ${activeTabIdState === 'tab-all' ? 'active' : ''}" data-tab="tab-all">63 Tiêu chí</button>
+      <button class="tab-btn ${activeTabIdState === 'tab-tips' ? 'active' : ''}" data-tab="tab-tips">Mẹo nộp MC</button>
     </div>
 
     <div class="panel-body">
       <!-- Tab 1: Roadmap -->
-      <div id="tab-roadmap" class="tab-content active">
+      <div id="tab-roadmap" class="tab-content ${activeTabIdState === 'tab-roadmap' ? 'active' : ''}">
         <p style="font-size:12px; color:#475569; margin-top:0;">Các tiêu chí ưu tiên làm để đạt mốc ${analysis.targetScore}đ:</p>
         ${(analysis.roadmapItems || []).map(item => `
           <div class="card">
@@ -195,7 +213,7 @@ function renderHustDrlPanel(analysis, rawData) {
       </div>
 
       <!-- Tab 2: All 63 Criteria Interactive Checklist -->
-      <div id="tab-all" class="tab-content">
+      <div id="tab-all" class="tab-content ${activeTabIdState === 'tab-all' ? 'active' : ''}">
         <p style="font-size:12px; color:#64748b; margin-top:0;">Danh sách toàn bộ 63 tiêu chí (tích chọn để thử điểm):</p>
         
         <div class="level-header">Level 1: Tự động / Bắt buộc (11 mục)</div>
@@ -212,7 +230,7 @@ function renderHustDrlPanel(analysis, rawData) {
       </div>
 
       <!-- Tab 3: Tips -->
-      <div id="tab-tips" class="tab-content">
+      <div id="tab-tips" class="tab-content ${activeTabIdState === 'tab-tips' ? 'active' : ''}">
         <div class="card">
           <b>Hiến máu nhân đạo (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Chụp rõ ảnh Giấy chứng nhận hiến máu hoặc mã QR trên ứng dụng Hiến máu.</p>
@@ -252,6 +270,7 @@ function renderHustDrlPanel(analysis, rawData) {
       tabContents.forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
       const targetId = btn.getAttribute('data-tab');
+      activeTabIdState = targetId;
       const targetEl = shadow.getElementById(targetId);
       if (targetEl) targetEl.classList.add('active');
     };
@@ -290,8 +309,15 @@ function renderHustDrlPanel(analysis, rawData) {
   });
 
   // Toggle & Close Panel
-  badge.onclick = () => panel.classList.toggle('open');
-  shadow.getElementById('close-btn').onclick = () => panel.classList.remove('open');
+  badge.onclick = () => {
+    isPanelOpenState = !panel.classList.contains('open');
+    panel.classList.toggle('open');
+  };
+
+  shadow.getElementById('close-btn').onclick = () => {
+    isPanelOpenState = false;
+    panel.classList.remove('open');
+  };
 
   // Scroll to element button
   shadow.querySelectorAll('.btn-scroll').forEach(btn => {
