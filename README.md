@@ -16,8 +16,8 @@ Tiện ích hỗ trợ sinh viên Đại học Bách khoa Hà Nội theo dõi v�
 
 ## 📥 Hướng dẫn cài đặt (3 bước)
 
-1. **Tải về**: Bấm nút **Code** ➔ **Download ZIP** ở góc trên trang này, sau đó giải nén tệp tin ra máy tính.
-2. **Mở trình duyệt**: Trên Chrome hoặc Edge, mở trang quản lý tiện ích bằng cách dán đường dẫn: `chrome://extensions/` vào thanh địa chỉ.
+1. **Tải tiện ích**: Tải tệp `.zip` từ mục **Releases** (hoặc bấm nút **Code** ➔ **Download ZIP** trên trang này), sau đó giải nén ra máy tính.
+2. **Mở trình duyệt**: Trên Chrome hoặc Edge, truy cập trang quản lý tiện ích: `chrome://extensions/`
 3. **Thêm tiện ích**: Bật công tắc **Chế độ dành cho nhà phát triển** (góc trên bên phải) ➔ Bấm **Tải tiện ích đã giải nén** ➔ Chọn thư mục vừa giải nén.
 
 ---
