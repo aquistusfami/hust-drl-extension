@@ -146,31 +146,34 @@ function renderHustDrlPanel(analysis, rawData) {
       font-size: 11px;
       cursor: pointer;
     }
-    .btn-tier {
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      color: #64748b;
-      font-size: 10px;
-      padding: 1px 5px;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    .btn-tier.active {
-      background: #dc2626;
-      color: #ffffff;
-      border-color: #dc2626;
-      font-weight: bold;
-    }
-    .level-header {
-      font-weight: bold;
+    .group-section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 12px;
-      padding: 6px 10px;
-      background: #f1f5f9;
-      color: #334155;
-      border-radius: 6px;
+      font-weight: 600;
+      color: #1e293b;
+      padding: 10px 0 4px 0;
       margin-top: 12px;
       margin-bottom: 6px;
-      border-left: 3px solid #dc2626;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .group-count {
+      font-size: 11px;
+      font-weight: normal;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+    .select-tier {
+      font-size: 11px;
+      padding: 2px 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #ffffff;
+      color: #334155;
+      cursor: pointer;
     }
   `;
 
@@ -188,6 +191,12 @@ function renderHustDrlPanel(analysis, rawData) {
   if (isPanelOpenState) {
     panel.classList.add('open');
   }
+
+  const itemsByLevel = { 1: [], 2: [], 3: [], 4: [] };
+  (analysis.allItems || []).forEach(item => {
+    const lvl = itemsByLevel[item.level] ? item.level : 3;
+    itemsByLevel[lvl].push(item);
+  });
 
   panel.innerHTML = `
     <div class="panel-header">
@@ -230,20 +239,32 @@ function renderHustDrlPanel(analysis, rawData) {
       <!-- Tab 2: All 63 Criteria Interactive Checklist & Tier Customizer -->
       <div id="tab-all" class="tab-content ${activeTabIdState === 'tab-all' ? 'active' : ''}">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <p style="font-size:12px; color:#64748b; margin:0;">Tích chọn điểm & tự đổi Level theo ý muốn:</p>
-          <button id="btn-reset-tiers" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">Đặt lại Level</button>
+          <p style="font-size:12px; color:#64748b; margin:0;">Tích chọn điểm & điều chỉnh nhóm ưu tiên:</p>
+          <button id="btn-reset-tiers" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">Đặt lại nhóm</button>
         </div>
         
-        <div class="level-header">Level 1: Tự động / Cực Dễ</div>
+        <div class="group-section-title">
+          <span>Mục ưu tiên cao (Tự động / Dễ tích điểm)</span>
+          <span class="group-count">${itemsByLevel[1].length} tiêu chí</span>
+        </div>
         <div id="level-1-list"></div>
 
-        <div class="level-header">Level 2: Mức Dễ</div>
+        <div class="group-section-title">
+          <span>Mục rèn luyện thông thường</span>
+          <span class="group-count">${itemsByLevel[2].length} tiêu chí</span>
+        </div>
         <div id="level-2-list"></div>
 
-        <div class="level-header">Level 3: Trung Bình</div>
+        <div class="group-section-title">
+          <span>Mục nâng cao / Kỹ năng & Khóa học</span>
+          <span class="group-count">${itemsByLevel[3].length} tiêu chí</span>
+        </div>
         <div id="level-3-list"></div>
 
-        <div class="level-header">Level 4: Khó / Khen thưởng</div>
+        <div class="group-section-title">
+          <span>Mục thành tích & Khen thưởng</span>
+          <span class="group-count">${itemsByLevel[4].length} tiêu chí</span>
+        </div>
         <div id="level-4-list"></div>
       </div>
 
@@ -312,12 +333,14 @@ function renderHustDrlPanel(analysis, rawData) {
         <div style="flex:1;">
           <div style="font-size:12px; font-weight:600; color:#334155;">${item.name}</div>
           <div style="font-size:11px; color:#64748b;">Điểm: +${item.maxPoint}đ (${item.isAchieved ? 'Đã đạt' : 'Chưa đạt'})</div>
-          <div style="display:flex; align-items:center; gap:4px; margin-top:4px;">
-            <span style="font-size:10px; color:#94a3b8;">Xếp Level:</span>
-            <button class="btn-tier ${item.level === 1 ? 'active' : ''}" data-cid="${item.id}" data-level="1">L1</button>
-            <button class="btn-tier ${item.level === 2 ? 'active' : ''}" data-cid="${item.id}" data-level="2">L2</button>
-            <button class="btn-tier ${item.level === 3 ? 'active' : ''}" data-cid="${item.id}" data-level="3">L3</button>
-            <button class="btn-tier ${item.level === 4 ? 'active' : ''}" data-cid="${item.id}" data-level="4">L4</button>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+            <span style="font-size:11px; color:#64748b;">Mức ưu tiên:</span>
+            <select class="select-tier" data-cid="${item.id}">
+              <option value="1" ${item.level === 1 ? 'selected' : ''}>Ưu tiên cao (Dễ)</option>
+              <option value="2" ${item.level === 2 ? 'selected' : ''}>Mức dễ</option>
+              <option value="3" ${item.level === 3 ? 'selected' : ''}>Trung bình</option>
+              <option value="4" ${item.level === 4 ? 'selected' : ''}>Nâng cao / Khó</option>
+            </select>
           </div>
         </div>
       `;
@@ -325,11 +348,11 @@ function renderHustDrlPanel(analysis, rawData) {
     }
   });
 
-  // Tier level change handler
-  shadow.querySelectorAll('.btn-tier').forEach(btn => {
-    btn.onclick = (e) => {
+  // Tier level change handler via clean select dropdown
+  shadow.querySelectorAll('.select-tier').forEach(select => {
+    select.onchange = (e) => {
       const cid = parseInt(e.target.getAttribute('data-cid'));
-      const lvl = parseInt(e.target.getAttribute('data-level'));
+      const lvl = parseInt(e.target.value);
       const setLevel = typeof setCustomLevel !== 'undefined' ? setCustomLevel : (typeof window !== 'undefined' ? window.setCustomLevel : null);
       if (setLevel) {
         setLevel(cid, lvl);
