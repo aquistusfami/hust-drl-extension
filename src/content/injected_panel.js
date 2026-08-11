@@ -7,7 +7,13 @@ function renderHustDrlPanel(analysis) {
 
   const container = document.createElement('div');
   container.id = 'hust-drl-helper-root';
-  document.body.appendChild(container);
+
+  const targetHost = document.body || document.documentElement;
+  if (targetHost) {
+    targetHost.appendChild(container);
+  } else {
+    return;
+  }
 
   const shadow = container.attachShadow({ mode: 'open' });
 
