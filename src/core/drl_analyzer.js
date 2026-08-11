@@ -113,7 +113,7 @@ function analyzeConductScore(rawJson) {
     accumulated += item.effectiveGain;
   }
 
-  // Group roadmap by main categories for structured UI rendering
+  // Category Roadmaps: Minimal items ordered Level 1 -> 4 needed to achieve FULL MAX points (CTMaxPoint) for each category
   const categoryRoadmaps = [];
   if (rawJson && rawJson.CriteriaTypeDetailsLst) {
     for (const ct of rawJson.CriteriaTypeDetailsLst) {
@@ -130,16 +130,28 @@ function analyzeConductScore(rawJson) {
         const gMax = gItems[0] ? gItems[0].cgMaxPoint : 100;
         ctCappedScore += (gMax < 0) ? gRaw : Math.min(gMax, gRaw);
       });
-      const finalCtScore = (ctMaxPoint < 0) ? ctCappedScore : Math.min(ctMaxPoint, ctCappedScore);
+      const currentCtScore = Math.max(0, (ctMaxPoint < 0) ? ctCappedScore : Math.min(ctMaxPoint, ctCappedScore));
+      const capacityNeeded = Math.max(0, ctMaxPoint - currentCtScore);
 
+      // Candidates in this category ordered Level 1 -> 2 -> 3 -> 4
       const catCandidates = candidateItems.filter(i => i.ctId === ct.CTId);
+      catCandidates.sort((a, b) => (a.level - b.level) || (b.effectiveGain - a.effectiveGain));
+
+      let accumCat = 0;
+      const suggestedItems = [];
+      for (const item of catCandidates) {
+        if (accumCat >= capacityNeeded && capacityNeeded > 0) break;
+        suggestedItems.push(item);
+        accumCat += item.effectiveGain;
+      }
 
       categoryRoadmaps.push({
         ctId: ct.CTId,
         ctName: ct.CTName,
         ctMaxPoint: ctMaxPoint,
-        currentScore: Math.max(0, finalCtScore),
-        suggestedItems: catCandidates
+        currentScore: currentCtScore,
+        capacityNeeded: capacityNeeded,
+        suggestedItems: suggestedItems
       });
     }
   }
