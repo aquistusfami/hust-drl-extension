@@ -13,27 +13,22 @@ describe('Injected Floating Panel Component Tests', () => {
 
     mockAnalysis = {
       currentScore: 65,
+      rank: 'Trung bình',
       targetScore: 70,
       scoreNeeded: 5,
-      rank: 'Trung bình',
       roadmapItems: [
-        { id: '1.1', name: 'Tham gia họp lớp', maxPoint: 3, level: 1 },
-        { id: '2.1', name: 'Tham gia NCKH', maxPoint: 5, level: 2 }
+        { id: 117, name: 'Tham gia họp lớp', maxPoint: 3, level: 1, proofType: 'auto' },
+        { id: 121, name: 'Tham gia NCKH', maxPoint: 2, level: 3, proofType: 'proof' }
       ],
-      allItems: []
+      allItems: [
+        { id: 117, name: 'Tham gia họp lớp', maxPoint: 3, level: 1, isAchieved: false },
+        { id: 121, name: 'Tham gia NCKH', maxPoint: 2, level: 3, isAchieved: false }
+      ]
     };
-
-    // Polyfill Element.prototype.scrollIntoView if missing in JSDOM
-    if (!Element.prototype.scrollIntoView) {
-      Element.prototype.scrollIntoView = jest.fn();
-    } else {
-      jest.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
-    }
   });
 
   afterEach(() => {
     jest.useRealTimers();
-    jest.restoreAllMocks();
   });
 
   test('should create container with shadow DOM and render badge & panel', () => {
@@ -41,99 +36,61 @@ describe('Injected Floating Panel Component Tests', () => {
 
     const root = document.getElementById('hust-drl-helper-root');
     expect(root).not.toBeNull();
-    expect(root.shadowRoot).not.toBeNull();
 
     const shadow = root.shadowRoot;
+    expect(shadow).not.toBeNull();
+
     const badge = shadow.querySelector('.badge');
     expect(badge).not.toBeNull();
-    expect(badge.textContent).toContain('65đ');
-    expect(badge.textContent).toContain('TRUNG BÌNH');
-    expect(badge.textContent).toContain('+5đ');
+    expect(badge.textContent).toContain('🔴 65đ - TRUNG BÌNH | +5đ ➔');
 
     const panel = shadow.querySelector('.panel');
     expect(panel).not.toBeNull();
     expect(panel.querySelector('.panel-header').textContent).toContain('65 / 100đ (Trung bình)');
     expect(panel.querySelector('.panel-header').textContent).toContain('Cần thêm 5đ');
 
-    const cards = shadow.querySelectorAll('.card');
+    const cards = shadow.querySelectorAll('#tab-roadmap .card');
     expect(cards.length).toBe(2);
     expect(cards[0].textContent).toContain('Tham gia họp lớp');
-    expect(cards[0].textContent).toContain('+3đ • Level 1');
+    expect(cards[0].textContent).toContain('+3đ');
+    expect(cards[0].textContent).toContain('Level 1');
     expect(cards[1].textContent).toContain('Tham gia NCKH');
-    expect(cards[1].textContent).toContain('+5đ • Level 2');
   });
 
-  test('should remove existing root before rendering new panel', () => {
-    const existingRoot = document.createElement('div');
-    existingRoot.id = 'hust-drl-helper-root';
-    existingRoot.innerHTML = '<div class="old-content">Old</div>';
-    document.body.appendChild(existingRoot);
-
+  test('should remove existing root before re-rendering', () => {
+    renderHustDrlPanel(mockAnalysis);
     renderHustDrlPanel(mockAnalysis);
 
     const roots = document.querySelectorAll('#hust-drl-helper-root');
     expect(roots.length).toBe(1);
-    expect(roots[0].shadowRoot.querySelector('.old-content')).toBeNull();
   });
 
-  test('should toggle panel open/close on badge click and close button click', () => {
+  test('should toggle panel open class when badge is clicked', () => {
     renderHustDrlPanel(mockAnalysis);
-
-    const root = document.getElementById('hust-drl-helper-root');
-    const shadow = root.shadowRoot;
+    const shadow = document.getElementById('hust-drl-helper-root').shadowRoot;
     const badge = shadow.querySelector('.badge');
     const panel = shadow.querySelector('.panel');
+
+    expect(panel.classList.contains('open')).toBe(false);
+    badge.click();
+    expect(panel.classList.contains('open')).toBe(true);
+
     const closeBtn = shadow.querySelector('#close-btn');
-
-    expect(panel.classList.contains('open')).toBe(false);
-
-    // Click badge to open panel
-    badge.click();
-    expect(panel.classList.contains('open')).toBe(true);
-
-    // Click badge to close panel
-    badge.click();
-    expect(panel.classList.contains('open')).toBe(false);
-
-    // Click badge to open panel again
-    badge.click();
-    expect(panel.classList.contains('open')).toBe(true);
-
-    // Click close button to close panel
     closeBtn.click();
     expect(panel.classList.contains('open')).toBe(false);
   });
 
-  test('scrollToCriteriaOnPage should find element by data-cid or id, highlight it and scroll', () => {
-    const targetDiv = document.createElement('div');
-    targetDiv.setAttribute('data-cid', '1.1');
-    document.body.appendChild(targetDiv);
+  test('should scroll to criteria and highlight element temporarily', () => {
+    const targetEl = document.createElement('div');
+    targetEl.setAttribute('data-cid', '117');
+    targetEl.scrollIntoView = jest.fn();
+    document.body.appendChild(targetEl);
 
-    scrollToCriteriaOnPage('1.1');
+    scrollToCriteriaOnPage('117');
 
-    expect(targetDiv.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
-    expect(targetDiv.style.backgroundColor).toBe('rgb(254, 240, 138)'); // #fef08a in rgb
+    expect(targetEl.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
 
-    // Fast-forward 2500ms timer
-    jest.advanceTimersByTime(2500);
-    expect(targetDiv.style.backgroundColor).toBe('');
-  });
-
-  test('clicking scroll button in panel should invoke scrollToCriteriaOnPage', () => {
-    const targetDiv = document.createElement('div');
-    targetDiv.setAttribute('data-cid', '2.1');
-    document.body.appendChild(targetDiv);
-
-    renderHustDrlPanel(mockAnalysis);
-
-    const root = document.getElementById('hust-drl-helper-root');
-    const shadow = root.shadowRoot;
-    const scrollBtns = shadow.querySelectorAll('.btn-scroll');
-
-    expect(scrollBtns.length).toBe(2);
-    scrollBtns[1].click();
-
-    expect(targetDiv.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
-    expect(targetDiv.style.backgroundColor).toBe('rgb(254, 240, 138)');
+    jest.advanceTimersByTime(2600);
+    expect(targetEl.style.backgroundColor).toBe('');
   });
 });

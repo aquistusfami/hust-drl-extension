@@ -11,7 +11,6 @@ if (!renderHustDrlPanelFn && typeof require !== 'undefined') {
   try { renderHustDrlPanelFn = require('./injected_panel').renderHustDrlPanel; } catch (e) {}
 }
 
-// Inject MAIN world XHR/Fetch API interceptor into the page
 function injectInterceptorScript() {
   if (typeof document !== 'undefined' && (document.head || document.documentElement)) {
     try {
@@ -33,7 +32,7 @@ function processAndRender(rawJson) {
   if (analyze) {
     const analysis = analyze(rawJson);
     if (render) {
-      render(analysis);
+      render(analysis, rawJson);
     }
     // Save to extension storage so Popup can access it anywhere
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
