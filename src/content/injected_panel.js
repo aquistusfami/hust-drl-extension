@@ -4,6 +4,7 @@ let currentAnalysisState = null;
 let currentRawData = null;
 let isPanelOpenState = false;
 let activeTabIdState = 'tab-roadmap';
+let savedScrollTopState = 0;
 
 function renderHustDrlPanel(analysis, rawData) {
   currentAnalysisState = analysis;
@@ -18,6 +19,10 @@ function renderHustDrlPanel(analysis, rawData) {
     const activeTab = existingRoot.shadowRoot.querySelector('.tab-btn.active');
     if (activeTab) {
       activeTabIdState = activeTab.getAttribute('data-tab');
+    }
+    const existingBody = existingRoot.shadowRoot.querySelector('.panel-body');
+    if (existingBody) {
+      savedScrollTopState = existingBody.scrollTop;
     }
   }
 
@@ -365,6 +370,12 @@ function renderHustDrlPanel(analysis, rawData) {
   `;
   shadow.appendChild(panel);
 
+  // Restore scroll position cleanly
+  const panelBody = shadow.querySelector('.panel-body');
+  if (panelBody && savedScrollTopState > 0) {
+    panelBody.scrollTop = savedScrollTopState;
+  }
+
   // Tab Navigation logic
   const tabBtns = shadow.querySelectorAll('.tab-btn');
   const tabContents = shadow.querySelectorAll('.tab-content');
@@ -483,16 +494,21 @@ function reAnalyzeAndRender() {
 function toggleItemAchievedState(cId) {
   if (!currentRawData) return;
 
+  const metaFetcher = typeof getCriteriaMeta !== 'undefined' ? getCriteriaMeta : (typeof window !== 'undefined' ? window.getCriteriaMeta : () => ({ defaultMaxPoint: 6.0 }));
+
   for (const ct of currentRawData.CriteriaTypeDetailsLst || []) {
     for (const cg of ct.CriteriaGroupDetailsLst || []) {
       for (const c of cg.UserCriteriaDetailsLst || []) {
-        if (c.CId === cId) {
-          if (c.UCPoint > 0) {
+        if (c.CId == cId) {
+          const defaultP = metaFetcher(cId).defaultMaxPoint || 6.0;
+          const targetPoint = c.CMaxPoint !== undefined && c.CMaxPoint > 0 ? c.CMaxPoint : defaultP;
+
+          if (c.UCPoint > 0 || c.TCPoint > 0) {
             c.UCPoint = 0.0;
             c.TCPoint = 0.0;
           } else {
-            c.UCPoint = c.CMaxPoint;
-            c.TCPoint = c.CMaxPoint;
+            c.UCPoint = targetPoint;
+            c.TCPoint = targetPoint;
           }
           break;
         }
