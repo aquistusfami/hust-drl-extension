@@ -75,6 +75,7 @@ function analyzeConductScore(rawJson) {
   const currentScore = Math.max(0, Math.min(100, totalScore));
   const rank = getRankName(currentScore);
   const targetScore = getNextTarget(currentScore);
+  const targetRankName = getRankName(targetScore);
   const scoreNeeded = Math.max(0, targetScore - currentScore);
 
   // Roadmap algorithm with Net Effective Point Gain calculation considering CGMaxPoint & CTMaxPoint
@@ -160,6 +161,7 @@ function analyzeConductScore(rawJson) {
     currentScore,
     rank,
     targetScore,
+    targetRankName,
     scoreNeeded,
     roadmapItems,
     categoryRoadmaps,

@@ -15,6 +15,7 @@ describe('Injected Floating Panel Component Tests', () => {
       currentScore: 65,
       rank: 'Trung bình',
       targetScore: 70,
+      targetRankName: 'Khá',
       scoreNeeded: 5,
       roadmapItems: [
         { id: 117, name: 'Tham gia họp lớp', maxPoint: 3, level: 1, proofType: 'auto' },
@@ -42,7 +43,7 @@ describe('Injected Floating Panel Component Tests', () => {
 
     const badge = shadow.querySelector('.badge');
     expect(badge).not.toBeNull();
-    expect(badge.textContent).toContain('HUST ĐRL: 65đ (TRUNG BÌNH) | +5đ ➔');
+    expect(badge.textContent).toContain('HUST ĐRL: 65đ (TRUNG BÌNH) | +5đ lên Khá ➔');
 
     const panel = shadow.querySelector('.panel');
     expect(panel).not.toBeNull();

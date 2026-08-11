@@ -30,6 +30,13 @@ function renderHustDrlPanel(analysis, rawData) {
 
 function updateHustDrlPanelDOM(shadow, analysis, rawData) {
   const progressPercent = Math.min(100, (analysis.currentScore / 100) * 100);
+  const targetRankTitle = analysis.targetRankName || 'Khá';
+  const targetText = analysis.currentScore >= 90 
+    ? `Đã đạt Xuất sắc (${analysis.currentScore}/100đ)` 
+    : `Cần thêm ${analysis.scoreNeeded}đ để đạt mốc ${targetRankTitle} (${analysis.targetScore}đ)`;
+  const badgeText = analysis.currentScore >= 90 
+    ? `HUST ĐRL: ${analysis.currentScore}đ (XUẤT SẮC)` 
+    : `HUST ĐRL: ${analysis.currentScore}đ (${analysis.rank.toUpperCase()}) | +${analysis.scoreNeeded}đ lên ${targetRankTitle} ➔`;
 
   // If shadow DOM is empty, build initial structure
   if (!shadow.querySelector('.panel')) {
@@ -246,7 +253,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
           <button id="close-btn" style="background:none; border:none; color:white; font-size:18px; cursor:pointer;">✕</button>
         </div>
         <div id="header-score" style="margin-top:8px; font-size:22px; font-weight:bold;">0 / 100đ (Yếu)</div>
-        <div id="header-target" style="font-size:12px; margin-top:2px; opacity:0.9;">Cần thêm 70đ để đạt mốc 70đ</div>
+        <div id="header-target" style="font-size:12px; margin-top:2px; opacity:0.9;">Cần thêm 70đ để đạt mốc Khá (70đ)</div>
         <div class="progress-bar-bg">
           <div id="header-progress" class="progress-bar-fill" style="width: 0%;"></div>
         </div>
@@ -374,7 +381,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
   // Update Header & Badge in-place
   const badgeEl = shadow.querySelector('.badge');
   if (badgeEl) {
-    badgeEl.innerHTML = `HUST ĐRL: ${analysis.currentScore}đ (${analysis.rank.toUpperCase()}) | +${analysis.scoreNeeded}đ ➔`;
+    badgeEl.innerHTML = badgeText;
   }
 
   const panelEl = shadow.querySelector('.panel');
@@ -386,7 +393,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
   if (scoreEl) scoreEl.textContent = `${analysis.currentScore} / 100đ (${analysis.rank})`;
 
   const targetEl = shadow.getElementById('header-target');
-  if (targetEl) targetEl.textContent = `Cần thêm ${analysis.scoreNeeded}đ để đạt mốc ${analysis.targetScore}đ`;
+  if (targetEl) targetEl.textContent = targetText;
 
   const progressEl = shadow.getElementById('header-progress');
   if (progressEl) progressEl.style.width = `${progressPercent}%`;
@@ -396,7 +403,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
   if (roadmapContainer) {
     if (analysis.categoryRoadmaps && analysis.categoryRoadmaps.length > 0) {
       roadmapContainer.innerHTML = `
-        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Lộ trình gợi ý theo từng mục lớn để đạt mốc <b>${analysis.targetScore}đ</b>:</p>
+        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Lộ trình gợi ý theo từng mục lớn để đạt mốc <b>${targetRankTitle} (${analysis.targetScore}đ)</b>:</p>
         ${analysis.categoryRoadmaps.map(cat => `
           <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
             <div style="background:#f1f5f9; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0;">
@@ -429,12 +436,12 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
       `;
     } else {
       roadmapContainer.innerHTML = `
-        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Các tiêu chí ưu tiên làm để đạt mốc ${analysis.targetScore}đ:</p>
+        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Các tiêu chí ưu tiên làm để đạt mốc <b>${targetRankTitle} (${analysis.targetScore}đ)</b>:</p>
         ${(analysis.roadmapItems || []).map(item => `
           <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
               <div style="font-weight:600; font-size:13px; color:#0f172a; flex:1;">${item.name}</div>
-              <span style="font-size:12px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 8px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
+              <span style="font-size:12px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
             </div>
             <div style="font-size:11px; color:#64748b; margin-top:4px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
             <div style="margin-top:8px; display:flex; gap:6px;">

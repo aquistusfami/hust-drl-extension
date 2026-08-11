@@ -12,10 +12,15 @@ function renderPopupContent(data) {
     return;
   }
 
+  const targetRankTitle = data.targetRankName || 'Khá';
+  const popupTargetText = data.currentScore >= 90
+    ? `Đã đạt Xuất sắc (<b>${data.currentScore}/100đ</b>)`
+    : `Cần thêm <b>${data.scoreNeeded}đ</b> để đạt mốc <b>${targetRankTitle} (${data.targetScore}đ)</b>.`;
+
   contentEl.innerHTML = `
     <div class="score-badge">${data.currentScore} / 100đ (${data.rank})</div>
     <p style="font-size:13px; color:#475569; margin-top:8px;">
-      Cần thêm <b>${data.scoreNeeded}đ</b> để đạt mốc <b>${data.targetScore}đ (${data.targetScore >= 90 ? 'Xuất sắc' : data.targetScore >= 80 ? 'Giỏi' : 'Khá'})</b>.
+      ${popupTargetText}
     </p>
     <div style="font-size:12px; background:#f1f5f9; border:1px solid #e2e8f0; padding:10px; border-radius:8px; margin-top:10px;">
       Đã chọn sẵn <b>${(data.roadmapItems || []).length} mục tối ưu nhất</b> trên trang iCTSV.
