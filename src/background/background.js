@@ -1,77 +1,73 @@
 // src/background/background.js
-
 if (typeof importScripts === 'function') {
   try {
     importScripts('../data/sample_data.js', '../core/criteria_db.js', '../core/drl_analyzer.js');
   } catch (e) {
-    console.error('[HUST ĐRL Helper] Error importing scripts in service worker:', e);
+    console.error('Failed to import scripts in background worker:', e);
   }
 }
 
 function initializeDefaultData() {
-  const sampleJson = typeof sampleDrlRawJson !== 'undefined' ? sampleDrlRawJson : null;
-  const analyzer = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : null;
-
-  if (sampleJson && analyzer && typeof chrome !== 'undefined' && chrome.storage) {
-    const defaultAnalysis = analyzer(sampleJson);
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
     chrome.storage.local.get(['drlData'], (result) => {
-      if (!result || !result.drlData) {
-        chrome.storage.local.set({ drlData: defaultAnalysis });
+      if (!result.drlData) {
+        const sampleJson = typeof sampleDrlRawJson !== 'undefined' ? sampleDrlRawJson : null;
+        const analyzer = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : null;
+        if (sampleJson && analyzer) {
+          const initialAnalysis = analyzer(sampleJson);
+          chrome.storage.local.set({ drlData: initialAnalysis });
+        }
       }
     });
   }
 }
 
-function handleMessage(request, sender, sendResponse) {
-  if (request.type === 'SAVE_DRL_DATA') {
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.local.set({ drlData: request.payload }, () => {
+function handleMessage(message, sender, sendResponse) {
+  if (message.type === 'SAVE_DRL_DATA') {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({ drlData: message.payload }, () => {
         sendResponse({ status: 'SUCCESS' });
       });
-    } else {
-      sendResponse({ status: 'SUCCESS' });
     }
     return true;
   }
-  if (request.type === 'GET_DRL_DATA') {
-    if (typeof chrome !== 'undefined' && chrome.storage) {
+
+  if (message.type === 'GET_DRL_DATA') {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.get(['drlData'], (result) => {
-        if (result && result.drlData) {
-          sendResponse({ payload: result.drlData });
-        } else {
-          const sampleJson = typeof sampleDrlRawJson !== 'undefined' ? sampleDrlRawJson : null;
-          const analyzer = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : null;
-          if (sampleJson && analyzer) {
-            const fallbackAnalysis = analyzer(sampleJson);
-            chrome.storage.local.set({ drlData: fallbackAnalysis });
-            sendResponse({ payload: fallbackAnalysis });
-          } else {
-            sendResponse({ payload: null });
-          }
-        }
+        sendResponse({ payload: result.drlData || null });
       });
     } else {
       sendResponse({ payload: null });
     }
     return true;
   }
+
+  if (message.type === 'TOGGLE_WIDGET_VISIBILITY') {
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.query({ url: "*://ctsv.hust.edu.vn/*" }, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, message).catch(() => {});
+        });
+      });
+    }
+    sendResponse({ status: 'SUCCESS' });
+    return true;
+  }
 }
 
 if (typeof chrome !== 'undefined' && chrome.runtime) {
   chrome.runtime.onInstalled.addListener(() => {
-    console.log('[HUST ĐRL Helper] Extension installed successfully.');
     initializeDefaultData();
   });
 
-  if (chrome.runtime.onStartup) {
-    chrome.runtime.onStartup.addListener(() => {
-      initializeDefaultData();
-    });
-  }
+  chrome.runtime.onStartup.addListener(() => {
+    initializeDefaultData();
+  });
 
   chrome.runtime.onMessage.addListener(handleMessage);
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { handleMessage };
+  module.exports = { initializeDefaultData, handleMessage };
 }

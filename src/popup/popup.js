@@ -4,9 +4,9 @@ function renderPopupContent(data) {
 
   if (!data) {
     contentEl.innerHTML = `
-      <div style="text-align:center; padding:10px 0;">
-        <p style="font-size:13px; color:#64748b; margin-bottom:8px;">Chưa có dữ liệu từ trang iCTSV.</p>
-        <p style="font-size:12px; color:#94a3b8;">Vui lòng mở trang iCTSV để tự động trích xuất điểm.</p>
+      <div style="text-align:center; padding:6px 0;">
+        <p style="font-size:13px; color:#64748b; margin-bottom:6px;">Chưa có dữ liệu từ trang iCTSV.</p>
+        <p style="font-size:12px; color:#94a3b8; margin:0;">Vui lòng mở trang iCTSV để tự động trích xuất điểm.</p>
       </div>
     `;
     return;
@@ -22,13 +22,34 @@ function renderPopupContent(data) {
     <p style="font-size:13px; color:#475569; margin-top:8px;">
       ${popupTargetText}
     </p>
-    <div style="font-size:12px; background:#f1f5f9; border:1px solid #e2e8f0; padding:10px; border-radius:8px; margin-top:10px;">
+    <div style="font-size:12px; background:#f1f5f9; border:1px solid #e2e8f0; padding:8px 10px; border-radius:8px; margin-top:8px;">
       Đã chọn sẵn <b>${(data.roadmapItems || []).length} mục tối ưu nhất</b> trên trang iCTSV.
     </div>
   `;
 }
 
 function initPopup() {
+  const toggleEl = document.getElementById('widget-toggle');
+
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get(['isWidgetEnabled'], (res) => {
+      const isEnabled = res.isWidgetEnabled !== undefined ? res.isWidgetEnabled : true;
+      if (toggleEl) toggleEl.checked = isEnabled;
+    });
+  }
+
+  if (toggleEl) {
+    toggleEl.onchange = (e) => {
+      const enabled = e.target.checked;
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ isWidgetEnabled: enabled });
+      }
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: 'TOGGLE_WIDGET_VISIBILITY', enabled });
+      }
+    };
+  }
+
   if (typeof chrome !== 'undefined' && chrome.runtime) {
     chrome.runtime.sendMessage({ type: 'GET_DRL_DATA' }, (response) => {
       if (response && response.payload) {

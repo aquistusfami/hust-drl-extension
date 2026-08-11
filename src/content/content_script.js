@@ -24,6 +24,24 @@ function injectInterceptorScript() {
   }
 }
 
+function applyWidgetVisibility(forcedState) {
+  if (typeof document === 'undefined') return;
+  const root = document.getElementById('hust-drl-helper-root');
+  if (!root) return;
+
+  if (forcedState !== undefined) {
+    root.style.display = forcedState ? 'block' : 'none';
+    return;
+  }
+
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get(['isWidgetEnabled'], (res) => {
+      const isEnabled = res.isWidgetEnabled !== undefined ? res.isWidgetEnabled : true;
+      root.style.display = isEnabled ? 'block' : 'none';
+    });
+  }
+}
+
 function processAndRender(rawJson) {
   if (!rawJson) return;
   const analyze = analyzeConductScoreFn || (typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : (typeof window !== 'undefined' ? window.analyzeConductScore : null));
@@ -33,6 +51,7 @@ function processAndRender(rawJson) {
     const analysis = analyze(rawJson);
     if (render) {
       render(analysis, rawJson);
+      applyWidgetVisibility();
     }
     // Save to extension storage so Popup can access it anywhere
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
@@ -78,6 +97,16 @@ if (typeof window !== 'undefined') {
   window.addEventListener('popstate', initHustDrlHelper);
 }
 
+// Listen for runtime visibility toggle messages
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'TOGGLE_WIDGET_VISIBILITY') {
+      applyWidgetVisibility(message.enabled);
+      if (sendResponse) sendResponse({ status: 'OK' });
+    }
+  });
+}
+
 // Run on page load
 if (typeof document !== 'undefined') {
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -92,5 +121,5 @@ if (typeof document !== 'undefined') {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { initHustDrlHelper, processAndRender };
+  module.exports = { initHustDrlHelper, processAndRender, applyWidgetVisibility };
 }
