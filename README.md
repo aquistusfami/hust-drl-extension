@@ -34,3 +34,11 @@ Tiện ích hỗ trợ sinh viên Đại học Bách khoa Hà Nội theo dõi v�
 
 - Tiện ích chạy trực tiếp trên máy tính của bạn.
 - Không lưu trữ hay thu thập thông tin cá nhân và tài khoản sinh viên.
+
+---
+
+## 🤝 Đóng góp & Phản hồi
+
+Nếu bạn gặp sự cố trong quá trình sử dụng, phát hiện lỗi tính điểm hoặc có ý tưởng đóng góp nâng cấp tiện ích:
+- **Báo lỗi & Góp ý**: Tạo một **[Issue](https://github.com/aquistusfami/hust-drl-extension/issues)** mới trên kho mã nguồn này kèm mô tả ngắn gọn.
+- **Đóng góp mã nguồn**: Bạn luôn được chào đón tạo **Pull Request (PR)** để cùng hoàn thiện tiện ích cho cộng đồng sinh viên Bách Khoa!
