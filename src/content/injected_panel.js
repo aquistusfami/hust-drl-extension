@@ -181,7 +181,7 @@ function renderHustDrlPanel(analysis, rawData) {
           <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
               <div style="font-weight:bold; font-size:13px; color:#1e293b; flex:1;">${item.name}</div>
-              <span style="font-size:12px; font-weight:bold; color:#16a34a; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.maxPoint}đ</span>
+              <span style="font-size:12px; font-weight:bold; color:#16a34a; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
             </div>
             <div style="font-size:11px; color:#64748b; margin-top:4px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng' : 'Cần nộp MC'}</div>
             <div style="margin-top:6px; display:flex; gap:6px;">
@@ -212,16 +212,28 @@ function renderHustDrlPanel(analysis, rawData) {
       <!-- Tab 3: Tips -->
       <div id="tab-tips" class="tab-content">
         <div class="card">
-          <b> Hiến máu nhân đạo (CId 143): +6đ</b>
+          <b>💉 Hiến máu nhân đạo: +6đ</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Chụp rõ ảnh Giấy chứng nhận hiến máu hoặc mã QR trên ứng dụng Hiến máu.</p>
         </div>
         <div class="card">
-          <b> Thể dục nâng cao sức khỏe (CId 135): +4đ</b>
+          <b>🏃 Thể dục nâng cao sức khỏe: +4đ</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Nộp ảnh kết quả chạy bộ từ ứng dụng Strava, VietRace365 hoặc chứng nhận BKRun.</p>
         </div>
         <div class="card">
-          <b> Khảo sát sinh viên (CId 140): +3đ</b>
+          <b>📝 Khảo sát sinh viên: +3đ</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Thực hiện khảo sát đánh giá giảng dạy trực tuyến trên eHUST/iCTSV.</p>
+        </div>
+        <div class="card">
+          <b>🎓 Khóa học kỹ năng bổ trợ / nghề nghiệp: +6đ</b>
+          <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Tải lên chứng chỉ hoàn thành khóa đào tạo kỹ năng do Trường/Khoa hoặc đơn vị hợp tác tổ chức.</p>
+        </div>
+        <div class="card">
+          <b>🌐 Chứng chỉ Ngoại ngữ TOEIC 600+: +6đ</b>
+          <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Tải ảnh chụp chứng chỉ quốc tế còn thời hạn lên hệ thống.</p>
+        </div>
+        <div class="card">
+          <b>💼 Thực tập sinh doanh nghiệp (>30 ngày): +6đ</b>
+          <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Nộp Giấy xác nhận thực tập từ doanh nghiệp có đóng dấu hợp pháp.</p>
         </div>
       </div>
     </div>
