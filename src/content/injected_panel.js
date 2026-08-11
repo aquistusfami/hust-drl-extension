@@ -166,6 +166,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
       .group-header.lvl-2 { background: #f0f9ff; border-color: #bae6fd; color: #075985; }
       .group-header.lvl-3 { background: #f8fafc; border-color: #e2e8f0; color: #334155; }
       .group-header.lvl-4 { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+      .group-header.lvl-0 { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
 
       .group-count {
         font-size: 11px;
@@ -214,6 +215,10 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
         color: #16a34a;
         font-weight: 600;
       }
+      .item-status.penalty {
+        color: #dc2626;
+        font-weight: 600;
+      }
       .select-priority {
         font-size: 10px;
         padding: 1px 4px;
@@ -235,6 +240,11 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
       .item-points.achieved {
         color: #15803d;
         background: #dcfce7;
+      }
+      .item-points.penalty {
+        color: #b91c1c;
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
       }
     `;
 
@@ -306,6 +316,14 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
               <span id="count-lvl-4" class="group-count">0 tiêu chí</span>
             </div>
             <div id="level-4-list"></div>
+          </div>
+
+          <div class="group-section" style="border-color:#fca5a5;">
+            <div class="group-header lvl-0">
+              <span>Mục vi phạm kỷ luật (Điểm trừ)</span>
+              <span id="count-lvl-0" class="group-count" style="color:#991b1b; background:#fee2e2;">0 tiêu chí</span>
+            </div>
+            <div id="level-0-list"></div>
           </div>
         </div>
 
@@ -454,21 +472,22 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
     }
   }
 
-  // Update Tab Criteria lists in-place
-  const itemsByLevel = { 1: [], 2: [], 3: [], 4: [] };
+  // Update Tab Criteria lists in-place including Level 0 penalties
+  const itemsByLevel = { 0: [], 1: [], 2: [], 3: [], 4: [] };
   (analysis.allItems || []).forEach(item => {
-    const lvl = itemsByLevel[item.level] ? item.level : 3;
+    const lvl = itemsByLevel[item.level] !== undefined ? item.level : 3;
     itemsByLevel[lvl].push(item);
   });
 
   const levelLists = {
+    0: shadow.getElementById('level-0-list'),
     1: shadow.getElementById('level-1-list'),
     2: shadow.getElementById('level-2-list'),
     3: shadow.getElementById('level-3-list'),
     4: shadow.getElementById('level-4-list')
   };
 
-  for (let l = 1; l <= 4; l++) {
+  for (let l = 0; l <= 4; l++) {
     const countEl = shadow.getElementById(`count-lvl-${l}`);
     if (countEl) countEl.textContent = `${itemsByLevel[l].length} tiêu chí`;
 
@@ -480,16 +499,18 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
           <div class="item-info">
             <div class="item-title">${item.name}</div>
             <div class="item-meta">
-              <span class="item-status ${item.isAchieved ? 'achieved' : ''}">${item.isAchieved ? 'Đã đạt' : 'Chưa đạt'}</span>
-              <select class="select-priority" data-cid="${item.id}">
-                <option value="1" ${item.level === 1 ? 'selected' : ''}>Ưu tiên: Cao</option>
-                <option value="2" ${item.level === 2 ? 'selected' : ''}>Ưu tiên: Dễ</option>
-                <option value="3" ${item.level === 3 ? 'selected' : ''}>Ưu tiên: Thường</option>
-                <option value="4" ${item.level === 4 ? 'selected' : ''}>Ưu tiên: Khó</option>
-              </select>
+              <span class="item-status ${item.isAchieved ? (l === 0 ? 'penalty' : 'achieved') : ''}">${item.isAchieved ? (l === 0 ? 'Vi phạm' : 'Đã đạt') : 'Chưa đạt'}</span>
+              ${l > 0 ? `
+                <select class="select-priority" data-cid="${item.id}">
+                  <option value="1" ${item.level === 1 ? 'selected' : ''}>Ưu tiên: Cao</option>
+                  <option value="2" ${item.level === 2 ? 'selected' : ''}>Ưu tiên: Dễ</option>
+                  <option value="3" ${item.level === 3 ? 'selected' : ''}>Ưu tiên: Thường</option>
+                  <option value="4" ${item.level === 4 ? 'selected' : ''}>Ưu tiên: Khó</option>
+                </select>
+              ` : ''}
             </div>
           </div>
-          <span class="item-points ${item.isAchieved ? 'achieved' : ''}">+${item.maxPoint}đ</span>
+          <span class="item-points ${l === 0 ? 'penalty' : (item.isAchieved ? 'achieved' : '')}">${l === 0 ? '-' : '+'}${item.maxPoint || 10}đ</span>
         </div>
       `).join('');
     }

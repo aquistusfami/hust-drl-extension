@@ -20,7 +20,8 @@ function getNextTarget(score) {
 }
 
 function analyzeConductScore(rawJson) {
-  let totalScore = 0;
+  let positiveScore = 0;
+  let penaltyDeductions = 0;
   const items = [];
 
   const metaFetcher = getMeta || (typeof window !== 'undefined' && window.getCriteriaMeta ? window.getCriteriaMeta : () => ({ level: 3, proofType: 'proof', tips: '' }));
@@ -28,6 +29,7 @@ function analyzeConductScore(rawJson) {
   if (rawJson && rawJson.CriteriaTypeDetailsLst) {
     for (const ct of rawJson.CriteriaTypeDetailsLst) {
       const ctMaxPoint = ct.CTMaxPoint !== undefined ? ct.CTMaxPoint : 100.0;
+      const isPenaltyCat = ct.CTId === 11 || ctMaxPoint < 0;
       let ctCappedScore = 0;
 
       for (const cg of ct.CriteriaGroupDetailsLst || []) {
@@ -40,6 +42,7 @@ function analyzeConductScore(rawJson) {
           const userPoint = c.UCPoint || c.TCPoint || 0;
           const maxPoint = c.CMaxPoint || 0;
           const meta = metaFetcher(cid);
+          const isItemPenalty = isPenaltyCat || meta.level === 0 || (cid >= 172 && cid <= 176);
 
           cgRawScore += userPoint;
 
@@ -49,8 +52,8 @@ function analyzeConductScore(rawJson) {
             userPoint: userPoint,
             maxPoint: maxPoint,
             isAchieved: userPoint > 0,
-            level: meta.level,
-            proofType: meta.proofType,
+            level: isItemPenalty ? 0 : meta.level,
+            proofType: isItemPenalty ? 'penalty' : meta.proofType,
             tips: meta.tips,
             cgId: cg.CGId,
             cgName: cg.CGName,
@@ -61,18 +64,22 @@ function analyzeConductScore(rawJson) {
           });
         }
 
-        // Cap Group score (unless penalty group with negative max)
-        const cgCappedScore = (cgMaxPoint < 0) ? cgRawScore : Math.min(cgMaxPoint, cgRawScore);
-        ctCappedScore += cgCappedScore;
+        if (isPenaltyCat) {
+          penaltyDeductions += cgRawScore;
+        } else {
+          const cgCappedScore = Math.min(cgMaxPoint, cgRawScore);
+          ctCappedScore += cgCappedScore;
+        }
       }
 
-      // Cap Category score (unless penalty category)
-      const ctFinalScore = (ctMaxPoint < 0) ? ctCappedScore : Math.min(ctMaxPoint, ctCappedScore);
-      totalScore += ctFinalScore;
+      if (!isPenaltyCat) {
+        const ctFinalScore = Math.min(ctMaxPoint, ctCappedScore);
+        positiveScore += ctFinalScore;
+      }
     }
   }
 
-  const currentScore = Math.max(0, Math.min(100, totalScore));
+  const currentScore = Math.max(0, Math.min(100, positiveScore - penaltyDeductions));
   const rank = getRankName(currentScore);
   const targetScore = getNextTarget(currentScore);
   const targetRankName = getRankName(targetScore);
@@ -118,7 +125,7 @@ function analyzeConductScore(rawJson) {
   const categoryRoadmaps = [];
   if (rawJson && rawJson.CriteriaTypeDetailsLst) {
     for (const ct of rawJson.CriteriaTypeDetailsLst) {
-      if (ct.CTId === 11) continue; // Skip penalty category in roadmap UI
+      if (ct.CTId === 11 || ct.CTMaxPoint < 0) continue; // Skip penalty category in positive roadmap UI
 
       const ctMaxPoint = ct.CTMaxPoint !== undefined ? ct.CTMaxPoint : 100.0;
       const catItems = items.filter(i => i.ctId === ct.CTId);
@@ -159,6 +166,8 @@ function analyzeConductScore(rawJson) {
 
   return {
     currentScore,
+    penaltyDeductions,
+    positiveScore,
     rank,
     targetScore,
     targetRankName,
