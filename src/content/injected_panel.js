@@ -96,12 +96,12 @@ function renderHustDrlPanel(analysis, rawData) {
     }
     .tab-bar {
       display: flex;
-      background: #f1f5f9;
+      background: #f8fafc;
       border-bottom: 1px solid #e2e8f0;
     }
     .tab-btn {
       flex: 1;
-      padding: 10px;
+      padding: 11px 8px;
       border: none;
       background: none;
       font-size: 12px;
@@ -116,64 +116,122 @@ function renderHustDrlPanel(analysis, rawData) {
       background: #ffffff;
     }
     .panel-body {
-      padding: 16px;
+      padding: 14px;
       overflow-y: auto;
       flex: 1;
+      background: #f8fafc;
     }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     .card {
-      background: #f8fafc;
+      background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 12px;
       margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
-    .item-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px solid #f1f5f9;
-    }
-    .item-row:last-child { border-bottom: none; }
     .btn-scroll {
       background: #2563eb;
       color: white;
       border: none;
-      padding: 4px 8px;
+      padding: 4px 10px;
       border-radius: 4px;
       font-size: 11px;
       cursor: pointer;
     }
-    .group-section-title {
+    .group-section {
+      margin-top: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .group-header {
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 600;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
-      font-weight: 600;
-      color: #1e293b;
-      padding: 10px 0 4px 0;
-      margin-top: 12px;
-      margin-bottom: 6px;
+      background: #f8fafc;
       border-bottom: 1px solid #e2e8f0;
     }
+    .group-header.lvl-1 { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .group-header.lvl-2 { background: #f0f9ff; border-color: #bae6fd; color: #075985; }
+    .group-header.lvl-3 { background: #f8fafc; border-color: #e2e8f0; color: #334155; }
+    .group-header.lvl-4 { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+
     .group-count {
       font-size: 11px;
-      font-weight: normal;
-      color: #64748b;
-      background: #f1f5f9;
-      padding: 1px 6px;
-      border-radius: 10px;
+      font-weight: 500;
+      background: rgba(255,255,255,0.8);
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08);
     }
-    .select-tier {
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      transition: background 0.15s ease;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-row:hover { background: #f8fafc; }
+    .chk-item {
+      width: 16px;
+      height: 16px;
+      accent-color: #dc2626;
+      cursor: pointer;
+    }
+    .item-info {
+      flex: 1;
+    }
+    .item-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #0f172a;
+      line-height: 1.4;
+    }
+    .item-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 3px;
+    }
+    .item-status {
       font-size: 11px;
-      padding: 2px 6px;
+      color: #94a3b8;
+    }
+    .item-status.achieved {
+      color: #16a34a;
+      font-weight: 600;
+    }
+    .select-priority {
+      font-size: 10px;
+      padding: 1px 4px;
       border: 1px solid #cbd5e1;
       border-radius: 4px;
       background: #ffffff;
-      color: #334155;
+      color: #475569;
       cursor: pointer;
+    }
+    .item-points {
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .item-points.achieved {
+      color: #15803d;
+      background: #dcfce7;
     }
   `;
 
@@ -220,17 +278,17 @@ function renderHustDrlPanel(analysis, rawData) {
     <div class="panel-body">
       <!-- Tab 1: Roadmap -->
       <div id="tab-roadmap" class="tab-content ${activeTabIdState === 'tab-roadmap' ? 'active' : ''}">
-        <p style="font-size:12px; color:#475569; margin-top:0;">Các tiêu chí ưu tiên làm để đạt mốc ${analysis.targetScore}đ:</p>
+        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Các tiêu chí ưu tiên làm để đạt mốc ${analysis.targetScore}đ:</p>
         ${(analysis.roadmapItems || []).map(item => `
           <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <div style="font-weight:bold; font-size:13px; color:#1e293b; flex:1;">${item.name}</div>
-              <span style="font-size:12px; font-weight:bold; color:#15803d; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
+              <div style="font-weight:600; font-size:13px; color:#0f172a; flex:1;">${item.name}</div>
+              <span style="font-size:12px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 8px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
             </div>
-            <div style="font-size:11px; color:#64748b; margin-top:4px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng' : 'Cần nộp MC'}</div>
-            <div style="margin-top:6px; display:flex; gap:6px;">
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
+            <div style="margin-top:8px; display:flex; gap:6px;">
               <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
-              <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
+              <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
             </div>
           </div>
         `).join('')}
@@ -238,60 +296,68 @@ function renderHustDrlPanel(analysis, rawData) {
 
       <!-- Tab 2: All 63 Criteria Interactive Checklist & Tier Customizer -->
       <div id="tab-all" class="tab-content ${activeTabIdState === 'tab-all' ? 'active' : ''}">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <p style="font-size:12px; color:#64748b; margin:0;">Tích chọn điểm & điều chỉnh nhóm ưu tiên:</p>
-          <button id="btn-reset-tiers" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">Đặt lại nhóm</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span style="font-size:12px; color:#475569; font-weight:500;">Bảng 63 Tiêu chí rèn luyện</span>
+          <button id="btn-reset-tiers" style="background:#ffffff; border:1px solid #cbd5e1; color:#475569; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;">Đặt lại nhóm</button>
         </div>
-        
-        <div class="group-section-title">
-          <span>Mục ưu tiên cao (Tự động / Dễ tích điểm)</span>
-          <span class="group-count">${itemsByLevel[1].length} tiêu chí</span>
-        </div>
-        <div id="level-1-list"></div>
 
-        <div class="group-section-title">
-          <span>Mục rèn luyện thông thường</span>
-          <span class="group-count">${itemsByLevel[2].length} tiêu chí</span>
+        <div class="group-section">
+          <div class="group-header lvl-1">
+            <span>Mục ưu tiên cao (Tự động / Dễ tích điểm)</span>
+            <span class="group-count">${itemsByLevel[1].length} tiêu chí</span>
+          </div>
+          <div id="level-1-list"></div>
         </div>
-        <div id="level-2-list"></div>
 
-        <div class="group-section-title">
-          <span>Mục nâng cao / Kỹ năng & Khóa học</span>
-          <span class="group-count">${itemsByLevel[3].length} tiêu chí</span>
+        <div class="group-section">
+          <div class="group-header lvl-2">
+            <span>Mục rèn luyện thông thường</span>
+            <span class="group-count">${itemsByLevel[2].length} tiêu chí</span>
+          </div>
+          <div id="level-2-list"></div>
         </div>
-        <div id="level-3-list"></div>
 
-        <div class="group-section-title">
-          <span>Mục thành tích & Khen thưởng</span>
-          <span class="group-count">${itemsByLevel[4].length} tiêu chí</span>
+        <div class="group-section">
+          <div class="group-header lvl-3">
+            <span>Mục nâng cao / Kỹ năng & Khóa học</span>
+            <span class="group-count">${itemsByLevel[3].length} tiêu chí</span>
+          </div>
+          <div id="level-3-list"></div>
         </div>
-        <div id="level-4-list"></div>
+
+        <div class="group-section">
+          <div class="group-header lvl-4">
+            <span>Mục thành tích & Khen thưởng</span>
+            <span class="group-count">${itemsByLevel[4].length} tiêu chí</span>
+          </div>
+          <div id="level-4-list"></div>
+        </div>
       </div>
 
       <!-- Tab 3: Tips -->
       <div id="tab-tips" class="tab-content ${activeTabIdState === 'tab-tips' ? 'active' : ''}">
         <div class="card">
-          <b>Hiến máu nhân đạo (+6đ)</b>
+          <b style="color:#0f172a; font-size:13px;">Hiến máu nhân đạo (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Chụp rõ ảnh Giấy chứng nhận hiến máu hoặc mã QR trên ứng dụng Hiến máu.</p>
         </div>
         <div class="card">
-          <b>Thể dục nâng cao sức khỏe (+4đ)</b>
+          <b style="color:#0f172a; font-size:13px;">Thể dục nâng cao sức khỏe (+4đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Nộp ảnh kết quả chạy bộ từ ứng dụng Strava, VietRace365 hoặc chứng nhận BKRun.</p>
         </div>
         <div class="card">
-          <b>Khảo sát sinh viên (+3đ)</b>
+          <b style="color:#0f172a; font-size:13px;">Khảo sát sinh viên (+3đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Thực hiện khảo sát đánh giá giảng dạy trực tuyến trên eHUST/iCTSV.</p>
         </div>
         <div class="card">
-          <b>Khóa học kỹ năng bổ trợ / nghề nghiệp (+6đ)</b>
+          <b style="color:#0f172a; font-size:13px;">Khóa học kỹ năng bổ trợ / nghề nghiệp (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Tải lên chứng chỉ hoàn thành khóa đào tạo kỹ năng do Trường/Khoa hoặc đơn vị hợp tác tổ chức.</p>
         </div>
         <div class="card">
-          <b>Chứng chỉ Ngoại ngữ TOEIC 600+ (+6đ)</b>
+          <b style="color:#0f172a; font-size:13px;">Chứng chỉ Ngoại ngữ TOEIC 600+ (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Tải ảnh chụp chứng chỉ quốc tế còn thời hạn lên hệ thống.</p>
         </div>
         <div class="card">
-          <b>Thực tập sinh doanh nghiệp (>30 ngày) (+6đ)</b>
+          <b style="color:#0f172a; font-size:13px;">Thực tập sinh doanh nghiệp (>30 ngày) (+6đ)</b>
           <p style="font-size:12px; color:#475569; margin:4px 0 0 0;">Nộp Giấy xác nhận thực tập từ doanh nghiệp có đóng dấu hợp pháp.</p>
         </div>
       </div>
@@ -329,27 +395,27 @@ function renderHustDrlPanel(analysis, rawData) {
       const row = document.createElement('div');
       row.className = 'item-row';
       row.innerHTML = `
-        <input type="checkbox" data-cid="${item.id}" ${item.isAchieved ? 'checked' : ''} style="cursor:pointer; margin-top:2px;">
-        <div style="flex:1;">
-          <div style="font-size:12px; font-weight:600; color:#334155;">${item.name}</div>
-          <div style="font-size:11px; color:#64748b;">Điểm: +${item.maxPoint}đ (${item.isAchieved ? 'Đã đạt' : 'Chưa đạt'})</div>
-          <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
-            <span style="font-size:11px; color:#64748b;">Mức ưu tiên:</span>
-            <select class="select-tier" data-cid="${item.id}">
-              <option value="1" ${item.level === 1 ? 'selected' : ''}>Ưu tiên cao (Dễ)</option>
-              <option value="2" ${item.level === 2 ? 'selected' : ''}>Mức dễ</option>
-              <option value="3" ${item.level === 3 ? 'selected' : ''}>Trung bình</option>
-              <option value="4" ${item.level === 4 ? 'selected' : ''}>Nâng cao / Khó</option>
+        <input type="checkbox" class="chk-item" data-cid="${item.id}" ${item.isAchieved ? 'checked' : ''}>
+        <div class="item-info">
+          <div class="item-title">${item.name}</div>
+          <div class="item-meta">
+            <span class="item-status ${item.isAchieved ? 'achieved' : ''}">${item.isAchieved ? 'Đã đạt' : 'Chưa đạt'}</span>
+            <select class="select-priority" data-cid="${item.id}">
+              <option value="1" ${item.level === 1 ? 'selected' : ''}>Ưu tiên: Cao</option>
+              <option value="2" ${item.level === 2 ? 'selected' : ''}>Ưu tiên: Dễ</option>
+              <option value="3" ${item.level === 3 ? 'selected' : ''}>Ưu tiên: Thường</option>
+              <option value="4" ${item.level === 4 ? 'selected' : ''}>Ưu tiên: Khó</option>
             </select>
           </div>
         </div>
+        <span class="item-points ${item.isAchieved ? 'achieved' : ''}">+${item.maxPoint}đ</span>
       `;
       listEl.appendChild(row);
     }
   });
 
   // Tier level change handler via clean select dropdown
-  shadow.querySelectorAll('.select-tier').forEach(select => {
+  shadow.querySelectorAll('.select-priority').forEach(select => {
     select.onchange = (e) => {
       const cid = parseInt(e.target.getAttribute('data-cid'));
       const lvl = parseInt(e.target.value);
@@ -374,7 +440,7 @@ function renderHustDrlPanel(analysis, rawData) {
   }
 
   // Checkbox live score toggle event handler
-  shadow.querySelectorAll('input[type="checkbox"], .btn-toggle-check').forEach(element => {
+  shadow.querySelectorAll('.chk-item, .btn-toggle-check').forEach(element => {
     element.onclick = (e) => {
       const cid = parseInt(e.target.getAttribute('data-cid'));
       toggleItemAchievedState(cid);

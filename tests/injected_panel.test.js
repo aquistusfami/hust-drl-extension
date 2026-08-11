@@ -53,7 +53,7 @@ describe('Injected Floating Panel Component Tests', () => {
     expect(cards.length).toBe(2);
     expect(cards[0].textContent).toContain('Tham gia họp lớp');
     expect(cards[0].textContent).toContain('+3đ');
-    expect(cards[0].textContent).toContain('Level 1');
+    expect(cards[0].textContent).toContain('Tự động cộng điểm');
     expect(cards[1].textContent).toContain('Tham gia NCKH');
   });
 
