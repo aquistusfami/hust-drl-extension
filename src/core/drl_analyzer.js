@@ -1,4 +1,8 @@
-const { getCriteriaMeta } = require('./criteria_db');
+// src/core/drl_analyzer.js
+var getMeta = typeof getCriteriaMeta !== 'undefined' ? getCriteriaMeta : (typeof window !== 'undefined' && window.getCriteriaMeta ? window.getCriteriaMeta : null);
+if (!getMeta && typeof require !== 'undefined') {
+  try { getMeta = require('./criteria_db').getCriteriaMeta; } catch (e) {}
+}
 
 function getRankName(score) {
   if (score >= 90) return 'Xuất sắc';
@@ -19,6 +23,8 @@ function analyzeConductScore(rawJson) {
   let totalScore = 0;
   const items = [];
 
+  const metaFetcher = getMeta || (typeof window !== 'undefined' && window.getCriteriaMeta ? window.getCriteriaMeta : () => ({ level: 3, proofType: 'proof', tips: '' }));
+
   if (rawJson && rawJson.CriteriaTypeDetailsLst) {
     for (const ct of rawJson.CriteriaTypeDetailsLst) {
       for (const cg of ct.CriteriaGroupDetailsLst || []) {
@@ -27,7 +33,7 @@ function analyzeConductScore(rawJson) {
           const cname = c.CName;
           const userPoint = c.UCPoint || c.TCPoint || 0;
           const maxPoint = c.CMaxPoint || 0;
-          const meta = getCriteriaMeta(cid);
+          const meta = metaFetcher(cid);
 
           totalScore += userPoint;
 
@@ -53,7 +59,7 @@ function analyzeConductScore(rawJson) {
   const targetScore = getNextTarget(currentScore);
   const scoreNeeded = Math.max(0, targetScore - currentScore);
 
-  // Roadmap algorithm: Filter unachieved items, sort by Level 1 -> Level 2 -> Level 3 -> Level 4
+  // Roadmap algorithm: Filter unachieved items, sort by Level 1 -> Level 2 -> Level 3
   const unachieved = items.filter(item => !item.isAchieved && item.level > 0);
   unachieved.sort((a, b) => a.level - b.level);
 
@@ -73,6 +79,12 @@ function analyzeConductScore(rawJson) {
     roadmapItems,
     allItems: items
   };
+}
+
+if (typeof window !== 'undefined') {
+  window.getRankName = getRankName;
+  window.getNextTarget = getNextTarget;
+  window.analyzeConductScore = analyzeConductScore;
 }
 
 if (typeof module !== 'undefined' && module.exports) {

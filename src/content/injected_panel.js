@@ -313,8 +313,9 @@ function toggleItemAchievedState(cId) {
     localStorage.setItem('iCTSV_CriteriaData', JSON.stringify(currentRawData));
   } catch (e) {}
 
-  if (typeof analyzeConductScore !== 'undefined') {
-    const updatedAnalysis = analyzeConductScore(currentRawData);
+  const analyzer = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : (typeof window !== 'undefined' ? window.analyzeConductScore : null);
+  if (analyzer) {
+    const updatedAnalysis = analyzer(currentRawData);
     renderHustDrlPanel(updatedAnalysis, currentRawData);
 
     // Save to Extension storage
@@ -331,6 +332,12 @@ function scrollToCriteriaOnPage(cId) {
     elements[0].style.backgroundColor = '#fef08a';
     setTimeout(() => { elements[0].style.backgroundColor = ''; }, 2500);
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.renderHustDrlPanel = renderHustDrlPanel;
+  window.scrollToCriteriaOnPage = scrollToCriteriaOnPage;
+  window.toggleItemAchievedState = toggleItemAchievedState;
 }
 
 if (typeof module !== 'undefined' && module.exports) {

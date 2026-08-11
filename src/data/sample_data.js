@@ -1,5 +1,5 @@
 // src/data/sample_data.js
-const sampleDrlRawJson = {
+var sampleDrlRawJson = {
     "RespCode": 0,
     "RespText": "OK",
     "CriteriaTypeDetailsLst": [
@@ -82,6 +82,10 @@ const sampleDrlRawJson = {
         }
     ]
 };
+
+if (typeof window !== 'undefined') {
+  window.sampleDrlRawJson = sampleDrlRawJson;
+}
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { sampleDrlRawJson };

@@ -1,7 +1,7 @@
 // src/content/content_script.js
 
-let analyzeConductScoreFn = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : null;
-let renderHustDrlPanelFn = typeof renderHustDrlPanel !== 'undefined' ? renderHustDrlPanel : null;
+let analyzeConductScoreFn = typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : (typeof window !== 'undefined' ? window.analyzeConductScore : null);
+let renderHustDrlPanelFn = typeof renderHustDrlPanel !== 'undefined' ? renderHustDrlPanel : (typeof window !== 'undefined' ? window.renderHustDrlPanel : null);
 
 if (!analyzeConductScoreFn && typeof require !== 'undefined') {
   try { analyzeConductScoreFn = require('../core/drl_analyzer').analyzeConductScore; } catch (e) {}
@@ -26,8 +26,8 @@ function injectInterceptorScript() {
 
 function processAndRender(rawJson) {
   if (!rawJson) return;
-  const analyze = analyzeConductScoreFn || (typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : null);
-  const render = renderHustDrlPanelFn || (typeof renderHustDrlPanel !== 'undefined' ? renderHustDrlPanel : null);
+  const analyze = analyzeConductScoreFn || (typeof analyzeConductScore !== 'undefined' ? analyzeConductScore : (typeof window !== 'undefined' ? window.analyzeConductScore : null));
+  const render = renderHustDrlPanelFn || (typeof renderHustDrlPanel !== 'undefined' ? renderHustDrlPanel : (typeof window !== 'undefined' ? window.renderHustDrlPanel : null));
 
   if (analyze) {
     const analysis = analyze(rawJson);
