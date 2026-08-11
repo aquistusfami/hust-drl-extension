@@ -444,7 +444,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
                   <div style="font-size:11px; color:#64748b; margin-top:2px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
                   <div style="margin-top:6px; display:flex; gap:6px;">
                     <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
-                    <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
+                    <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
                   </div>
                 </div>
               `).join('')}
@@ -591,11 +591,71 @@ function toggleItemAchievedState(cId) {
 }
 
 function scrollToCriteriaOnPage(cId) {
-  const elements = document.querySelectorAll(`[data-cid="${cId}"], [id*="${cId}"]`);
-  if (elements.length > 0) {
-    elements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-    elements[0].style.backgroundColor = '#fef08a';
-    setTimeout(() => { elements[0].style.backgroundColor = ''; }, 2500);
+  // 1. Scroll inside Injected Panel (Tab Tiêu chí)
+  const root = document.getElementById('hust-drl-helper-root');
+  if (root && root.shadowRoot) {
+    const shadow = root.shadowRoot;
+
+    // Switch active tab to 'tab-all' (Tiêu chí)
+    const tabBtns = shadow.querySelectorAll('.tab-btn');
+    const tabContents = shadow.querySelectorAll('.tab-content');
+    tabBtns.forEach(b => {
+      if (b.getAttribute('data-tab') === 'tab-all') b.classList.add('active');
+      else b.classList.remove('active');
+    });
+    tabContents.forEach(c => {
+      if (c.id === 'tab-all') c.classList.add('active');
+      else c.classList.remove('active');
+    });
+    activeTabIdState = 'tab-all';
+
+    // Find the item row in the panel and scroll to it
+    const rowEl = shadow.querySelector(`.chk-item[data-cid="${cId}"]`)?.closest('.item-row');
+    if (rowEl) {
+      rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const origBg = rowEl.style.backgroundColor;
+      rowEl.style.transition = 'background-color 0.4s ease';
+      rowEl.style.backgroundColor = '#fef08a';
+      setTimeout(() => {
+        rowEl.style.backgroundColor = origBg;
+      }, 2500);
+    }
+  }
+
+  // 2. Scroll on the main iCTSV webpage
+  let webTarget = document.querySelector(`[data-cid="${cId}"], [id*="${cId}"]`);
+
+  if (!webTarget && currentAnalysisState && currentAnalysisState.allItems) {
+    const item = currentAnalysisState.allItems.find(i => i.id == cId);
+    if (item && item.name) {
+      const cleanName = item.name.trim();
+      const candidates = Array.from(document.querySelectorAll('tr, div, li, td, p, span'));
+      for (const node of candidates) {
+        if (node.children.length <= 2 && node.textContent && node.textContent.includes(cleanName)) {
+          webTarget = node;
+          break;
+        }
+      }
+      if (!webTarget && cleanName.length > 12) {
+        const subName = cleanName.substring(0, 15);
+        for (const node of candidates) {
+          if (node.children.length <= 2 && node.textContent && node.textContent.includes(subName)) {
+            webTarget = node;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (webTarget) {
+    webTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const origBg = webTarget.style.backgroundColor;
+    webTarget.style.transition = 'background-color 0.4s ease';
+    webTarget.style.backgroundColor = '#fef08a';
+    setTimeout(() => {
+      webTarget.style.backgroundColor = origBg;
+    }, 2500);
   }
 }
 
