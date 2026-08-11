@@ -21,12 +21,13 @@
         "*://*.hust.edu.vn/*"
       ],
       "js": [
+        "src/data/sample_data.js",
         "src/core/criteria_db.js",
         "src/core/drl_analyzer.js",
         "src/content/injected_panel.js",
         "src/content/content_script.js"
       ],
-      "run_at": "document_end"
+      "run_at": "document_start"
     }
   ],
   "action": {
