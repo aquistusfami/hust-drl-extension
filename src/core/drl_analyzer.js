@@ -27,7 +27,13 @@ function analyzeConductScore(rawJson) {
 
   if (rawJson && rawJson.CriteriaTypeDetailsLst) {
     for (const ct of rawJson.CriteriaTypeDetailsLst) {
+      const ctMaxPoint = ct.CTMaxPoint !== undefined ? ct.CTMaxPoint : 100.0;
+      let ctCappedScore = 0;
+
       for (const cg of ct.CriteriaGroupDetailsLst || []) {
+        const cgMaxPoint = cg.CGMaxPoint !== undefined ? cg.CGMaxPoint : 100.0;
+        let cgRawScore = 0;
+
         for (const c of cg.UserCriteriaDetailsLst || []) {
           const cid = c.CId;
           const cname = c.CName;
@@ -35,7 +41,7 @@ function analyzeConductScore(rawJson) {
           const maxPoint = c.CMaxPoint || 0;
           const meta = metaFetcher(cid);
 
-          totalScore += userPoint;
+          cgRawScore += userPoint;
 
           items.push({
             id: cid,
@@ -46,29 +52,65 @@ function analyzeConductScore(rawJson) {
             level: meta.level,
             proofType: meta.proofType,
             tips: meta.tips,
-            groupName: cg.CGName,
-            typeName: ct.CTName
+            cgId: cg.CGId,
+            cgName: cg.CGName,
+            cgMaxPoint: cgMaxPoint,
+            ctId: ct.CTId,
+            ctName: ct.CTName,
+            ctMaxPoint: ctMaxPoint
           });
         }
+
+        // Cap Group score (unless penalty group with negative max)
+        const cgCappedScore = (cgMaxPoint < 0) ? cgRawScore : Math.min(cgMaxPoint, cgRawScore);
+        ctCappedScore += cgCappedScore;
       }
+
+      // Cap Category score (unless penalty category)
+      const ctFinalScore = (ctMaxPoint < 0) ? ctCappedScore : Math.min(ctMaxPoint, ctCappedScore);
+      totalScore += ctFinalScore;
     }
   }
 
-  const currentScore = Math.max(0, totalScore);
+  const currentScore = Math.max(0, Math.min(100, totalScore));
   const rank = getRankName(currentScore);
   const targetScore = getNextTarget(currentScore);
   const scoreNeeded = Math.max(0, targetScore - currentScore);
 
-  // Roadmap algorithm: Filter unachieved items, sort by Level 1 -> Level 2 -> Level 3
+  // Roadmap algorithm with Net Effective Point Gain calculation considering CGMaxPoint & CTMaxPoint
   const unachieved = items.filter(item => !item.isAchieved && item.level > 0);
-  unachieved.sort((a, b) => a.level - b.level);
+
+  const candidateItems = unachieved.map(item => {
+    // Current group raw score
+    const groupItems = items.filter(i => i.cgId === item.cgId);
+    const currentCgScore = groupItems.reduce((sum, i) => sum + i.userPoint, 0);
+    const availableCgCapacity = (item.cgMaxPoint < 0) ? item.maxPoint : Math.max(0, item.cgMaxPoint - currentCgScore);
+
+    // Current category capped score
+    const catItems = items.filter(i => i.ctId === item.ctId);
+    const groupIds = [...new Set(catItems.map(i => i.cgId))];
+    let currentCtScore = 0;
+    groupIds.forEach(gid => {
+      const gItems = catItems.filter(i => i.cgId === gid);
+      const gRaw = gItems.reduce((sum, i) => sum + i.userPoint, 0);
+      const gMax = gItems[0].cgMaxPoint;
+      currentCtScore += (gMax < 0) ? gRaw : Math.min(gMax, gRaw);
+    });
+    const availableCtCapacity = (item.ctMaxPoint < 0) ? item.maxPoint : Math.max(0, item.ctMaxPoint - currentCtScore);
+
+    const effectiveGain = Math.min(item.maxPoint, availableCgCapacity, availableCtCapacity);
+    return { ...item, effectiveGain };
+  }).filter(item => item.effectiveGain > 0);
+
+  // Sort by Level (1 -> 2 -> 3) then by highest effective gain
+  candidateItems.sort((a, b) => (a.level - b.level) || (b.effectiveGain - a.effectiveGain));
 
   let accumulated = 0;
   const roadmapItems = [];
-  for (const item of unachieved) {
+  for (const item of candidateItems) {
     if (accumulated >= scoreNeeded && scoreNeeded > 0) break;
     roadmapItems.push(item);
-    accumulated += item.maxPoint;
+    accumulated += item.effectiveGain;
   }
 
   return {

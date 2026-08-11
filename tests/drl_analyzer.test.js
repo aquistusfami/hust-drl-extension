@@ -37,6 +37,34 @@ describe('DRL Analyzer Algorithm Tests', () => {
     expect(result.allItems.length).toBeGreaterThan(0);
   });
 
+  test('should enforce CGMaxPoint group capping correctly', () => {
+    const mockJson = {
+      CriteriaTypeDetailsLst: [
+        {
+          CTId: 6,
+          CTName: 'Chấp hành pháp luật',
+          CTMaxPoint: 25.0,
+          CriteriaGroupDetailsLst: [
+            {
+              CGId: 17,
+              CGName: 'Chấp hành pháp luật công dân',
+              CGMaxPoint: 15.0,
+              UserCriteriaDetailsLst: [
+                { CId: 114, CName: 'Mục 1', UCPoint: 6.0, CMaxPoint: 6.0 },
+                { CId: 115, CName: 'Mục 2', UCPoint: 6.0, CMaxPoint: 6.0 },
+                { CId: 116, CName: 'Mục 3', UCPoint: 4.0, CMaxPoint: 4.0 }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    // Raw sum is 6 + 6 + 4 = 16, but CGMaxPoint is 15.0!
+    const result = analyzeConductScore(mockJson);
+    expect(result.currentScore).toBe(15);
+  });
+
   test('should prioritize roadmap items by level (level 1 -> level 2 -> level 3)', () => {
     const result = analyzeConductScore(rawJson);
     const levels = result.roadmapItems.map(item => item.level);
