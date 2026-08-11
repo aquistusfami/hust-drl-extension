@@ -1,0 +1,26 @@
+body {
+  width: 320px;
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+.header {
+  background: #dc2626;
+  color: white;
+  padding: 12px 16px;
+}
+.header h3 { margin: 0; font-size: 15px; }
+.content { padding: 16px; }
+.score-badge { font-size: 22px; font-weight: bold; color: #dc2626; }
+.footer { padding: 12px 16px; border-top: 1px solid #e2e8f0; text-align: center; }
+.btn-link {
+  display: inline-block;
+  background: #2563eb;
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
