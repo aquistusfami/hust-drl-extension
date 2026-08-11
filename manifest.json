@@ -30,6 +30,17 @@
       "run_at": "document_start"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/content/interceptor.js"
+      ],
+      "matches": [
+        "*://ctsv.hust.edu.vn/*",
+        "*://*.hust.edu.vn/*"
+      ]
+    }
+  ],
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_icon": {
