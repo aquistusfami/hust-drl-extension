@@ -1,0 +1,11 @@
+{
+  "name": "hust-drl-extension",
+  "version": "1.0.0",
+  "description": "HUST DRL Extension",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
