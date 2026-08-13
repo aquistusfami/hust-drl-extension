@@ -1,6 +1,6 @@
 # HUST ĐRL Helper (Kỳ 20261)
 
-Tiện ích hỗ trợ sinh viên Đại học Bách khoa Hà Nội theo dõi và tối ưu Điểm Rèn Luyện (ĐRL) trực tiếp trên hệ thống iCTSV.
+Tiện ích hỗ trợ sinh viên Đại học Bách khoa Hà Nội theo dõi và tối ưu Điểm Rèn Luyện (ĐRL) trực tiếp trên hệ thống iCTSV. Update: 13/08/2026
 
 ---
 
