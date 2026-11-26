@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HUST ĐRL Helper (Kỳ 20261)",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Tiện ích trích xuất và gợi ý lộ trình tích điểm rèn luyện tối ưu cho sinh viên HUST",
   "permissions": [
     "storage",
@@ -12,7 +12,13 @@
     "*://*.hust.edu.vn/*"
   ],
   "background": {
-    "service_worker": "src/background/background.js"
+    "service_worker": "src/background/background.js",
+    "scripts": [
+      "src/data/sample_data.js",
+      "src/core/criteria_db.js",
+      "src/core/drl_analyzer.js",
+      "src/background/background.js"
+    ]
   },
   "content_scripts": [
     {
@@ -24,6 +30,7 @@
         "src/data/sample_data.js",
         "src/core/criteria_db.js",
         "src/core/drl_analyzer.js",
+        "src/content/activities.js",
         "src/content/injected_panel.js",
         "src/content/content_script.js"
       ],

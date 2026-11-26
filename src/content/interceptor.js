@@ -10,7 +10,7 @@
       try {
         const clone = response.clone();
         clone.json().then(data => {
-          if (data && (data.CriteriaTypeDetailsLst || data.RespCode === 0)) {
+          if (Array.isArray(data?.CriteriaTypeDetailsLst)) {
             window.dispatchEvent(new CustomEvent('HUST_DRL_DATA_EVENT', { detail: data }));
           }
         }).catch(() => {});
@@ -31,7 +31,9 @@
       try {
         if (this.responseText && this.responseText.includes('CriteriaTypeDetailsLst')) {
           const data = JSON.parse(this.responseText);
-          window.dispatchEvent(new CustomEvent('HUST_DRL_DATA_EVENT', { detail: data }));
+          if (Array.isArray(data?.CriteriaTypeDetailsLst)) {
+            window.dispatchEvent(new CustomEvent('HUST_DRL_DATA_EVENT', { detail: data }));
+          }
         }
       } catch (e) {}
     });

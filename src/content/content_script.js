@@ -60,13 +60,37 @@ function processAndRender(rawJson) {
   }
 }
 
+function criteriaSnapshot(data) {
+  if (!Array.isArray(data?.CriteriaTypeDetailsLst)) return null;
+
+  return {
+    CriteriaTypeDetailsLst: data.CriteriaTypeDetailsLst.map(({ CTId, CTName, CTMaxPoint, CriteriaGroupDetailsLst }) => ({
+      CTId, CTName, CTMaxPoint,
+      CriteriaGroupDetailsLst: (CriteriaGroupDetailsLst || []).map(({ CGId, CGName, CGMaxPoint, UserCriteriaDetailsLst }) => ({
+        CGId, CGName, CGMaxPoint,
+        UserCriteriaDetailsLst: (UserCriteriaDetailsLst || []).map(({ CId, CName, UCPoint, TCPoint, CMaxPoint }) => ({
+          CId, CName, UCPoint, TCPoint, CMaxPoint
+        }))
+      }))
+    }))
+  };
+}
+
 function initHustDrlHelper() {
-  console.log('[HUST ĐRL Helper] Content script active on:', typeof location !== 'undefined' ? location.href : 'iCTSV');
+  console.log('[HUST ĐRL Helper] Content script active.');
 
   let rawJson = null;
   try {
     const stored = localStorage.getItem('iCTSV_CriteriaData');
-    if (stored) rawJson = JSON.parse(stored);
+    if (stored) {
+      rawJson = criteriaSnapshot(JSON.parse(stored));
+      if (rawJson) {
+        const sanitized = JSON.stringify(rawJson);
+        if (sanitized !== stored) localStorage.setItem('iCTSV_CriteriaData', sanitized);
+      } else {
+        localStorage.removeItem('iCTSV_CriteriaData');
+      }
+    }
   } catch (e) {
     console.error('[HUST ĐRL Helper] LocalStorage parse error:', e);
   }
@@ -84,13 +108,18 @@ function initHustDrlHelper() {
 // Listen for live API data events from interceptor.js
 if (typeof window !== 'undefined') {
   window.addEventListener('HUST_DRL_DATA_EVENT', (e) => {
-    if (e.detail) {
-      console.log('[HUST ĐRL Helper] Captured live API criteria data!');
-      try {
-        localStorage.setItem('iCTSV_CriteriaData', JSON.stringify(e.detail));
-      } catch (err) {}
-      processAndRender(e.detail);
+    let snapshot;
+    try {
+      snapshot = criteriaSnapshot(e.detail);
+    } catch {
+      return;
     }
+    if (!snapshot) return;
+
+    try {
+      localStorage.setItem('iCTSV_CriteriaData', JSON.stringify(snapshot));
+    } catch {}
+    processAndRender(snapshot);
   });
 
   window.addEventListener('hashchange', initHustDrlHelper);

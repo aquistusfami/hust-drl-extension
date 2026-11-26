@@ -16,15 +16,25 @@ function renderPopupContent(data) {
   const popupTargetText = data.currentScore >= 90
     ? `Đã đạt Xuất sắc (<b>${data.currentScore}/100đ</b>)`
     : `Cần thêm <b>${data.scoreNeeded}đ</b> để đạt mốc <b>${targetRankTitle} (${data.targetScore}đ)</b>.`;
+  const roadmapCount = (data.roadmapItems || []).length;
+  let roadmapSummary = 'Chưa có tiêu chí gợi ý giúp tăng điểm.';
+  if (roadmapCount > 0) {
+    roadmapSummary = `Có <b>${roadmapCount} tiêu chí gợi ý</b> trong widget trên iCTSV.`;
+    if (Number.isFinite(data.projectedScore)) {
+      roadmapSummary += ` Điểm dự kiến nếu hoàn thành là <b>${data.projectedScore}/100đ</b>.`;
+    }
+  }
 
   contentEl.innerHTML = `
     <div class="score-badge">${data.currentScore} / 100đ (${data.rank})</div>
     <p style="font-size:13px; color:#475569; margin-top:8px;">
       ${popupTargetText}
     </p>
-    <div style="font-size:12px; background:#f1f5f9; border:1px solid #e2e8f0; padding:8px 10px; border-radius:8px; margin-top:8px;">
-      Đã chọn sẵn <b>${(data.roadmapItems || []).length} mục tối ưu nhất</b> trên trang iCTSV.
-    </div>
+    ${data.currentScore < 90 ? `
+      <div style="font-size:12px; background:#f1f5f9; border:1px solid #e2e8f0; padding:8px 10px; border-radius:8px; margin-top:8px;">
+        ${roadmapSummary}
+      </div>
+    ` : ''}
   `;
 }
 

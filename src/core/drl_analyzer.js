@@ -23,6 +23,7 @@ function analyzeConductScore(rawJson) {
   let positiveScore = 0;
   let penaltyDeductions = 0;
   const items = [];
+  const candidates = [];
 
   const metaFetcher = getMeta || (typeof window !== 'undefined' && window.getCriteriaMeta ? window.getCriteriaMeta : () => ({ level: 3, proofType: 'proof', tips: '' }));
 
@@ -30,10 +31,12 @@ function analyzeConductScore(rawJson) {
     for (const ct of rawJson.CriteriaTypeDetailsLst) {
       const ctMaxPoint = ct.CTMaxPoint !== undefined ? ct.CTMaxPoint : 100.0;
       const isPenaltyCat = ct.CTId === 11 || ctMaxPoint < 0;
+      const category = { remaining: ctMaxPoint };
       let ctCappedScore = 0;
 
       for (const cg of ct.CriteriaGroupDetailsLst || []) {
         const cgMaxPoint = cg.CGMaxPoint !== undefined ? cg.CGMaxPoint : 100.0;
+        const group = { remaining: cgMaxPoint };
         let cgRawScore = 0;
 
         for (const c of cg.UserCriteriaDetailsLst || []) {
@@ -46,7 +49,7 @@ function analyzeConductScore(rawJson) {
 
           cgRawScore += userPoint;
 
-          items.push({
+          const item = {
             id: cid,
             name: cname,
             userPoint: userPoint,
@@ -61,7 +64,11 @@ function analyzeConductScore(rawJson) {
             ctId: ct.CTId,
             ctName: ct.CTName,
             ctMaxPoint: ctMaxPoint
-          });
+          };
+          items.push(item);
+          if (!item.isAchieved && item.level > 0 && item.maxPoint > 0) {
+            candidates.push({ item, group, category });
+          }
         }
 
         if (isPenaltyCat) {
@@ -69,100 +76,45 @@ function analyzeConductScore(rawJson) {
         } else {
           const cgCappedScore = Math.min(cgMaxPoint, cgRawScore);
           ctCappedScore += cgCappedScore;
+          group.remaining = cgMaxPoint - cgCappedScore;
         }
       }
 
       if (!isPenaltyCat) {
         const ctFinalScore = Math.min(ctMaxPoint, ctCappedScore);
         positiveScore += ctFinalScore;
+        category.remaining = ctMaxPoint - ctFinalScore;
       }
     }
   }
 
-  const currentScore = Math.max(0, Math.min(100, positiveScore - penaltyDeductions));
+  const netScore = positiveScore - penaltyDeductions;
+  const currentScore = Math.max(0, Math.min(100, netScore));
   const rank = getRankName(currentScore);
-  const targetScore = getNextTarget(currentScore);
+  const targetScore = Math.min(90, getNextTarget(currentScore));
   const targetRankName = getRankName(targetScore);
   const scoreNeeded = Math.max(0, targetScore - currentScore);
 
-  // Roadmap algorithm with Net Effective Point Gain calculation considering CGMaxPoint & CTMaxPoint
-  const unachieved = items.filter(item => !item.isAchieved && item.level > 0);
+  for (const candidate of candidates) {
+    const { item, group, category } = candidate;
+    candidate.initialGain = Math.min(item.maxPoint, group.remaining, category.remaining);
+  }
+  candidates.sort((a, b) => (a.item.level - b.item.level) || (b.initialGain - a.initialGain));
 
-  const candidateItems = unachieved.map(item => {
-    // Current group raw score
-    const groupItems = items.filter(i => i.cgId === item.cgId);
-    const currentCgScore = groupItems.reduce((sum, i) => sum + i.userPoint, 0);
-    const availableCgCapacity = (item.cgMaxPoint < 0) ? item.maxPoint : Math.max(0, item.cgMaxPoint - currentCgScore);
-
-    // Current category capped score
-    const catItems = items.filter(i => i.ctId === item.ctId);
-    const groupIds = [...new Set(catItems.map(i => i.cgId))];
-    let currentCtScore = 0;
-    groupIds.forEach(gid => {
-      const gItems = catItems.filter(i => i.cgId === gid);
-      const gRaw = gItems.reduce((sum, i) => sum + i.userPoint, 0);
-      const gMax = gItems[0].cgMaxPoint;
-      currentCtScore += (gMax < 0) ? gRaw : Math.min(gMax, gRaw);
-    });
-    const availableCtCapacity = (item.ctMaxPoint < 0) ? item.maxPoint : Math.max(0, item.ctMaxPoint - currentCtScore);
-
-    const effectiveGain = Math.min(item.maxPoint, availableCgCapacity, availableCtCapacity);
-    return { ...item, effectiveGain };
-  }).filter(item => item.effectiveGain > 0);
-
-  // Sort by Level (1 -> 2 -> 3) then by highest effective gain
-  candidateItems.sort((a, b) => (a.level - b.level) || (b.effectiveGain - a.effectiveGain));
-
-  let accumulated = 0;
+  let projectedNetScore = netScore;
   const roadmapItems = [];
-  for (const item of candidateItems) {
-    if (accumulated >= scoreNeeded && scoreNeeded > 0) break;
-    roadmapItems.push(item);
-    accumulated += item.effectiveGain;
+  for (const { item, group, category } of candidates) {
+    if (projectedNetScore >= targetScore) break;
+    const effectiveGain = Math.min(item.maxPoint, group.remaining, category.remaining);
+    if (effectiveGain <= 0) continue;
+
+    group.remaining -= effectiveGain;
+    category.remaining -= effectiveGain;
+    projectedNetScore += effectiveGain;
+    roadmapItems.push({ ...item, effectiveGain });
   }
 
-  // Category Roadmaps: Minimal items ordered Level 1 -> 4 needed to achieve FULL MAX points (CTMaxPoint) for each category
-  const categoryRoadmaps = [];
-  if (rawJson && rawJson.CriteriaTypeDetailsLst) {
-    for (const ct of rawJson.CriteriaTypeDetailsLst) {
-      if (ct.CTId === 11 || ct.CTMaxPoint < 0) continue; // Skip penalty category in positive roadmap UI
-
-      const ctMaxPoint = ct.CTMaxPoint !== undefined ? ct.CTMaxPoint : 100.0;
-      const catItems = items.filter(i => i.ctId === ct.CTId);
-
-      let ctCappedScore = 0;
-      const groupIds = [...new Set(catItems.map(i => i.cgId))];
-      groupIds.forEach(gid => {
-        const gItems = catItems.filter(i => i.cgId === gid);
-        const gRaw = gItems.reduce((sum, i) => sum + i.userPoint, 0);
-        const gMax = gItems[0] ? gItems[0].cgMaxPoint : 100;
-        ctCappedScore += (gMax < 0) ? gRaw : Math.min(gMax, gRaw);
-      });
-      const currentCtScore = Math.max(0, (ctMaxPoint < 0) ? ctCappedScore : Math.min(ctMaxPoint, ctCappedScore));
-      const capacityNeeded = Math.max(0, ctMaxPoint - currentCtScore);
-
-      // Candidates in this category ordered Level 1 -> 2 -> 3 -> 4
-      const catCandidates = candidateItems.filter(i => i.ctId === ct.CTId);
-      catCandidates.sort((a, b) => (a.level - b.level) || (b.effectiveGain - a.effectiveGain));
-
-      let accumCat = 0;
-      const suggestedItems = [];
-      for (const item of catCandidates) {
-        if (accumCat >= capacityNeeded && capacityNeeded > 0) break;
-        suggestedItems.push(item);
-        accumCat += item.effectiveGain;
-      }
-
-      categoryRoadmaps.push({
-        ctId: ct.CTId,
-        ctName: ct.CTName,
-        ctMaxPoint: ctMaxPoint,
-        currentScore: currentCtScore,
-        capacityNeeded: capacityNeeded,
-        suggestedItems: suggestedItems
-      });
-    }
-  }
+  const projectedScore = Math.max(0, Math.min(100, projectedNetScore));
 
   return {
     currentScore,
@@ -173,7 +125,7 @@ function analyzeConductScore(rawJson) {
     targetRankName,
     scoreNeeded,
     roadmapItems,
-    categoryRoadmaps,
+    projectedScore,
     allItems: items
   };
 }

@@ -1,6 +1,7 @@
 .superpowers/
 node_modules/
 docs/
-tests/
+tests/*
+!tests/roadmap.test.js
 scratch/
 *.zip

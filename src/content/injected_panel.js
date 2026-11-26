@@ -4,6 +4,7 @@ let currentAnalysisState = null;
 let currentRawData = null;
 let isPanelOpenState = false;
 let activeTabIdState = 'tab-roadmap';
+let openActivities = [];
 
 function renderHustDrlPanel(analysis, rawData) {
   currentAnalysisState = analysis;
@@ -143,6 +144,30 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
         font-size: 11px;
         cursor: pointer;
       }
+      .activity-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 8px;
+        margin-bottom: 10px;
+        color: #475569;
+        font-size: 12px;
+      }
+      .activity-toolbar[hidden] { display: none; }
+      #load-activities {
+        border: 0;
+        padding: 4px 0;
+        color: #1d4ed8;
+        background: none;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #load-activities:hover, .criterion-activities a:hover { text-decoration: underline; }
+      #load-activities:disabled { color: #475569; cursor: wait; }
+      .criterion-activities { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.45; }
+      .criterion-activities ul { margin: 3px 0 0; padding-left: 16px; }
+      .criterion-activities a { color: #1d4ed8; overflow-wrap: anywhere; }
       .group-section {
         margin-top: 12px;
         margin-bottom: 12px;
@@ -277,7 +302,14 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
 
       <div class="panel-body">
         <!-- Tab 1: Roadmap -->
-        <div id="tab-roadmap" class="tab-content active"></div>
+        <div id="tab-roadmap" class="tab-content active">
+          <div id="roadmap-content"></div>
+          <div class="activity-toolbar" ${window.location.hostname === 'ctsv.hust.edu.vn' ? '' : 'hidden'}>
+            <button id="load-activities" type="button">Tìm hoạt động đang mở</button>
+            <span id="activity-status" role="status"></span>
+          </div>
+          <div id="roadmap-items"></div>
+        </div>
 
         <!-- Tab 2: All Criteria Interactive Checklist & Tier Customizer -->
         <div id="tab-all" class="tab-content">
@@ -369,6 +401,29 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
       panel.classList.remove('open');
     };
 
+    shadow.getElementById('load-activities').onclick = async (event) => {
+      const button = event.currentTarget;
+      const status = shadow.getElementById('activity-status');
+      button.disabled = true;
+      status.textContent = 'Đang kiểm tra mục Sự kiện trên iCTSV…';
+      openActivities = [];
+      showOpenActivities(shadow);
+      try {
+        const { activities, unread } = await loadOpenActivities();
+        openActivities = activities;
+        const count = showOpenActivities(shadow);
+        status.textContent = count
+          ? `Có ${count} hoạt động khớp. Xem thêm trong tab Tiêu chí.`
+          : 'Chưa thấy hoạt động đang mở khớp tiêu chí trong mục Sự kiện.';
+        if (unread) status.textContent += ` Chưa kiểm tra được ${unread} trang chi tiết.`;
+      } catch {
+        status.textContent = 'Chưa tải được mục Sự kiện trên iCTSV. Hãy thử lại.';
+      } finally {
+        button.textContent = 'Làm mới hoạt động';
+        button.disabled = false;
+      }
+    };
+
     const tabBtns = shadow.querySelectorAll('.tab-btn');
     const tabContents = shadow.querySelectorAll('.tab-content');
 
@@ -416,60 +471,43 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
   const progressEl = shadow.getElementById('header-progress');
   if (progressEl) progressEl.style.width = `${progressPercent}%`;
 
-  // Update Tab Roadmap grouped by Main Categories in-place (or fallback to flat roadmapItems)
-  const roadmapContainer = shadow.getElementById('tab-roadmap');
+  const roadmapContainer = shadow.getElementById('roadmap-items');
   if (roadmapContainer) {
-    if (analysis.categoryRoadmaps && analysis.categoryRoadmaps.length > 0) {
-      roadmapContainer.innerHTML = `
-        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Lộ trình gợi ý theo từng mục lớn để đạt mốc <b>${targetRankTitle} (${analysis.targetScore}đ)</b>:</p>
-        ${analysis.categoryRoadmaps.map(cat => `
-          <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-            <div style="background:#f1f5f9; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0;">
-              <div style="font-weight:600; font-size:12px; color:#0f172a; flex:1;">${cat.ctName}</div>
-              <div style="font-size:11px; font-weight:700; color:${cat.currentScore >= cat.ctMaxPoint ? '#16a34a' : '#2563eb'}; background:#ffffff; padding:2px 8px; border-radius:10px; border:1px solid #cbd5e1; white-space:nowrap; margin-left:6px;">
-                ${cat.currentScore} / ${cat.ctMaxPoint}đ
-              </div>
-            </div>
-            <div style="padding:10px 12px;">
-              ${cat.currentScore >= cat.ctMaxPoint ? `
-                <div style="font-size:11px; color:#16a34a; font-weight:500;">✓ Đã đạt kịch trần mục này (${cat.currentScore}/${cat.ctMaxPoint}đ)</div>
-              ` : cat.suggestedItems.length === 0 ? `
-                <div style="font-size:11px; color:#64748b;">Đã tích lũy đủ các mục ưu tiên trong phần này</div>
-              ` : cat.suggestedItems.map(item => `
-                <div class="card" style="margin-bottom:6px;">
-                  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div style="font-weight:600; font-size:12px; color:#0f172a; flex:1;">${item.name}</div>
-                    <span style="font-size:11px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
-                  </div>
-                  <div style="font-size:11px; color:#64748b; margin-top:2px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
-                  <div style="margin-top:6px; display:flex; gap:6px;">
-                    <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
-                    <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `).join('')}
-      `;
-    } else {
-      roadmapContainer.innerHTML = `
-        <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;">Các tiêu chí ưu tiên làm để đạt mốc <b>${targetRankTitle} (${analysis.targetScore}đ)</b>:</p>
-        ${(analysis.roadmapItems || []).map(item => `
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <div style="font-weight:600; font-size:13px; color:#0f172a; flex:1;">${item.name}</div>
-              <span style="font-size:12px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain || item.maxPoint}đ</span>
-            </div>
-            <div style="font-size:11px; color:#64748b; margin-top:4px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
-            <div style="margin-top:8px; display:flex; gap:6px;">
-              <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
-              <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Đánh dấu đã làm</button>
-            </div>
-          </div>
-        `).join('')}
-      `;
+    const roadmapItems = analysis.roadmapItems || [];
+    const projectedScore = analysis.projectedScore;
+    let roadmapStatus = `Các tiêu chí ưu tiên để đạt mốc ${targetRankTitle} (${analysis.targetScore}đ).`;
+    if (analysis.currentScore >= 90) {
+      roadmapStatus = 'Bạn đã đạt xếp loại cao nhất.';
+    } else if (roadmapItems.length === 0) {
+      roadmapStatus = 'Chưa có tiêu chí gợi ý giúp tăng điểm.';
+    } else if (Number.isFinite(projectedScore)) {
+      const remaining = Math.max(0, analysis.targetScore - projectedScore);
+      roadmapStatus = `Nếu hoàn thành các tiêu chí dưới đây, điểm dự kiến là ${projectedScore}/100đ.`;
+      roadmapStatus += remaining > 0
+        ? ` Còn thiếu ${remaining}đ để đạt mốc ${targetRankTitle}.`
+        : ` Đủ mốc ${targetRankTitle}.`;
     }
+
+    shadow.getElementById('roadmap-content').innerHTML = `
+      <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;" role="status">${roadmapStatus}</p>
+    `;
+    roadmapContainer.innerHTML = `
+      ${roadmapItems.map(item => `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="font-weight:600; font-size:13px; color:#0f172a; flex:1;">${item.name}</div>
+            <span style="font-size:12px; font-weight:700; color:#15803d; background:#dcfce7; padding:2px 6px; border-radius:4px; margin-left:6px;">+${item.effectiveGain ?? item.maxPoint}đ</span>
+          </div>
+          <div style="font-size:11px; color:#64748b; margin-top:4px;">Level ${item.level} • ${item.proofType === 'auto' ? 'Tự động cộng điểm' : 'Cần nộp minh chứng'}</div>
+          ${item.effectiveGain < item.maxPoint ? `<div style="font-size:11px; color:#64748b;">Tối đa ${item.maxPoint}đ. Điểm cộng dự kiến bị giới hạn bởi trần nhóm hoặc mục.</div>` : ''}
+          <div class="criterion-activities" data-criterion-activities="${item.id}" hidden></div>
+          <div style="margin-top:8px; display:flex; gap:6px;">
+            <button class="btn-scroll" data-cid="${item.id}">Kéo tới mục</button>
+            <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Thử tính điểm</button>
+          </div>
+        </div>
+      `).join('')}
+    `;
   }
 
   // Update Tab Criteria lists in-place including Level 0 penalties
@@ -509,12 +547,15 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
                 </select>
               ` : ''}
             </div>
+            <div class="criterion-activities" data-criterion-activities="${item.id}" hidden></div>
           </div>
           <span class="item-points ${l === 0 ? 'penalty' : (item.isAchieved ? 'achieved' : '')}">${l === 0 ? '-' : '+'}${item.maxPoint || 10}đ</span>
         </div>
       `).join('');
     }
   }
+
+  showOpenActivities(shadow);
 
   // Re-bind dynamic handlers
   shadow.querySelectorAll('.select-priority').forEach(select => {
@@ -542,6 +583,36 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
       scrollToCriteriaOnPage(cid);
     };
   });
+}
+
+function showOpenActivities(shadow) {
+  const items = new Map((currentAnalysisState.allItems || []).map(item => [String(item.id), item]));
+  const shown = new Set();
+
+  shadow.querySelectorAll('[data-criterion-activities]').forEach(slot => {
+    const item = items.get(slot.dataset.criterionActivities);
+    const criterion = openActivities.length && typeof item?.name === 'string' ? normalizeCriterionName(item.name) : '';
+    const matches = criterion ? openActivities.filter(activity => activity.criteria.includes(criterion)) : [];
+    slot.replaceChildren();
+    slot.hidden = matches.length === 0;
+    if (slot.hidden) return;
+
+    const list = document.createElement('ul');
+    for (const activity of matches) {
+      const entry = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = new URL(activity.path, window.location.origin).href;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = activity.name;
+      entry.append(link);
+      list.append(entry);
+      shown.add(activity.path);
+    }
+    slot.append('Hoạt động đang mở', list);
+  });
+
+  return shown.size;
 }
 
 function reAnalyzeAndRender() {
