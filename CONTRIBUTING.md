@@ -21,10 +21,16 @@ Trình duyệt đọc trực tiếp mã nguồn của tiện ích. Khi làm vi�
 | Đường dẫn | Nội dung |
 | --- | --- |
 | `src/core/` | Tính điểm, trần điểm, lộ trình và thông tin tiêu chí |
-| `src/content/` | Đọc dữ liệu iCTSV, tra cứu hoạt động và hiển thị widget |
+| `src/content/` | Đọc điểm iCTSV, ghép hoạt động với tiêu chí và hiển thị widget |
 | `src/popup/` | Giao diện mở từ biểu tượng tiện ích |
 | `src/background/` | Xử lý thông điệp và lưu trữ cục bộ |
 | `manifest.json` | Điểm vào, quyền trình duyệt và thứ tự nạp script |
+
+## Cập nhật dữ liệu hoạt động
+
+Chạy `node scripts/update-public-activities.js` để tạo lại `src/data/public_activities.json`. Công cụ dùng API công khai, lấy danh sách theo trang và chỉ đọc chi tiết các `AId` công khai chưa qua giờ kết thúc. Chi tiết được dùng lại trong 24 giờ nếu tên và lịch hoạt động giữ nguyên. Mỗi lần chạy ghi số lượt gọi danh sách và chi tiết.
+
+Widget dùng bản JSON đi kèm để tra cứu cục bộ. Khi phát hành bản dữ liệu mới, kiểm tra ngày cập nhật và chỉ giữ các trường công khai cần thiết như mã, tên, thời gian và tiêu chí.
 
 ## Kiểm thử
 
@@ -36,7 +42,7 @@ git diff --check
 Jest chạy các tệp `tests/*.test.js`. Bộ kiểm thử có trong repo nằm ở `tests/roadmap.test.js`. Bạn có thể chạy riêng bằng `npm test -- --runInBand tests/roadmap.test.js`.
 
 - Với thay đổi tính điểm, kiểm tra trường hợp nhiều tiêu chí dùng chung trần nhóm hoặc mục, chưa đủ điểm và đã đạt mốc xếp loại.
-- Với thay đổi tra cứu hoạt động, kiểm tra hoạt động khớp tiêu chí và còn đăng ký, hoạt động đã đóng, và trường hợp chưa tìm thấy kết quả.
+- Với thay đổi tra cứu hoạt động, kiểm tra ghép đúng tiêu chí, loại hoạt động đã qua giờ kết thúc và xử lý bản dữ liệu thiếu kết quả.
 - Với thay đổi giao diện hoặc manifest, nạp tiện ích trong trình duyệt và kiểm tra thao tác liên quan. Nếu sửa khai báo script nền, kiểm tra cả Firefox và một trình duyệt Chromium.
 
 ## Gửi pull request

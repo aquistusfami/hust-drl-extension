@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HUST ĐRL Helper (Kỳ 20261)",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Tiện ích trích xuất và gợi ý lộ trình tích điểm rèn luyện tối ưu cho sinh viên HUST",
   "permissions": [
     "storage",
@@ -45,6 +45,14 @@
       "matches": [
         "*://ctsv.hust.edu.vn/*",
         "*://*.hust.edu.vn/*"
+      ]
+    },
+    {
+      "resources": [
+        "src/data/public_activities.json"
+      ],
+      "matches": [
+        "*://ctsv.hust.edu.vn/*"
       ]
     }
   ],

@@ -15,21 +15,21 @@ Tải mã nguồn bằng **Code → Download ZIP** và giải nén vào một th
 ## Sử dụng
 
 1. Đăng nhập iCTSV, mở trang chấm điểm và nhấn nút **HUST ĐRL** ở góc dưới bên phải. [Trang chấm điểm rèn luyện](https://ctsv.hust.edu.vn/cham-diem-ren-luyen)
-2. Trong tab **Gợi ý Lộ trình**, xem điểm hiện tại, số điểm dự kiến và phần còn thiếu để đạt mốc tiếp theo **Khá (70 điểm)**, **Giỏi (80 điểm)** hoặc **Xuất sắc (90 điểm)**. Điểm cộng dự kiến tính theo trần của từng nhóm và mục.
-3. Chọn **Tìm hoạt động đang mở**. Tiện ích tra cứu mục **Sự kiện** trên trang chủ iCTSV và đặt liên kết dưới tiêu chí tương ứng trong **Gợi ý Lộ trình** và **Tiêu chí**. Kết quả gồm những sự kiện được giới thiệu tại đó có nút **Đăng ký tham gia** trên trang chi tiết.
-4. Chọn **Thử tính điểm** để mô phỏng điểm khi hoàn thành một tiêu chí. Dùng **Kéo tới mục** để xem tiêu chí trên trang chấm điểm hoặc mở **Mẹo nộp MC** để xem gợi ý chuẩn bị minh chứng.
+2. Trong tab **Gợi ý Lộ trình**, xem điểm hiện tại, điểm dự kiến và trần điểm của từng mục trong 5 mục ĐRL. Tiện ích ưu tiên các tiêu chí dễ hơn khi lập kế hoạch đến mốc **Khá (70 điểm)**, **Tốt (80 điểm)** hoặc **Xuất sắc (90 điểm)**. Nếu các tiêu chí hiện có chưa đủ, widget hiển thị mức điểm cao nhất dự kiến và phần còn thiếu.
+3. Xem **Hoạt động sắp hoặc đang diễn ra** ngay dưới tiêu chí phù hợp trong **Gợi ý Lộ trình** và **Tiêu chí**. Widget đọc bản dữ liệu công khai đi kèm và ghi ngày cập nhật. Mở liên kết iCTSV để kiểm tra hạn đăng ký hoặc xem các sự kiện mới hơn.
+4. Chọn **Thử tính điểm** để mô phỏng điểm khi hoàn thành một tiêu chí. **Kéo tới mục** mở tiêu chí cùng các hoạt động liên quan. Tab **Mẹo nộp MC** có gợi ý chuẩn bị minh chứng.
 
 Bạn có thể bật hoặc tắt widget bằng công tắc **Bật Widget trên iCTSV** trong popup của tiện ích.
 
 ## Demo
 
-Widget trên Firefox với dữ liệu giả lập. Hai tiêu chí được gợi ý để tăng từ 66 lên 70 điểm, trong đó một tiêu chí có hoạt động đang mở.
+Widget trên Firefox với dữ liệu giả lập. Lộ trình từ 66 lên 70 điểm chia theo 5 mục ĐRL và hiển thị một hoạt động ngay dưới tiêu chí phù hợp.
 
-<img src="images/roadmap-demo.png" alt="Widget HUST ĐRL Helper hiển thị lộ trình từ 66 lên 70 điểm và một hoạt động đang mở dưới tiêu chí phù hợp" width="400">
+<img src="images/roadmap-demo.png" alt="Widget HUST ĐRL Helper hiển thị lộ trình từ 66 lên 70 điểm và một hoạt động dưới tiêu chí phù hợp" width="400">
 
 ## Dữ liệu và quyền riêng tư
 
-Tiện ích tính điểm trong trình duyệt và lưu cục bộ dữ liệu dùng để tính điểm, lựa chọn mô phỏng và tùy chọn hiển thị. Khi tra cứu hoạt động, tiện ích đọc nội dung iCTSV hiển thị trong phiên hiện tại. Hãy đối chiếu kết quả chính thức và trạng thái minh chứng trên iCTSV.
+Tiện ích tính điểm trong trình duyệt và lưu cục bộ dữ liệu dùng để tính điểm, lựa chọn mô phỏng và tùy chọn hiển thị. Việc ghép hoạt động với tiêu chí diễn ra trong trình duyệt từ tệp đi kèm. Hãy đối chiếu kết quả chính thức và trạng thái minh chứng trên iCTSV. [Dữ liệu hoạt động công khai (JSON)](src/data/public_activities.json)
 
 ## Đóng góp
 

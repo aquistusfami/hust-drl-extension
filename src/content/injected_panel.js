@@ -4,7 +4,9 @@ let currentAnalysisState = null;
 let currentRawData = null;
 let isPanelOpenState = false;
 let activeTabIdState = 'tab-roadmap';
-let openActivities = [];
+let publicActivitySnapshot = null;
+let activityDataState = 'idle';
+let focusedActivityCriterion = null;
 
 function renderHustDrlPanel(analysis, rawData) {
   currentAnalysisState = analysis;
@@ -135,6 +137,21 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
         margin-bottom: 8px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02);
       }
+      .roadmap-category {
+        border-top: 1px solid #e2e8f0;
+        margin-bottom: 12px;
+        padding-top: 9px;
+      }
+      .roadmap-category-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .roadmap-category h3 { margin: 0; color: #0f172a; font-size: 13px; }
+      .roadmap-category-score { color: #334155; font-size: 12px; white-space: nowrap; }
+      .roadmap-category-empty { margin: 0; color: #475569; font-size: 12px; }
       .btn-scroll {
         background: #2563eb;
         color: white;
@@ -154,17 +171,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
         font-size: 12px;
       }
       .activity-toolbar[hidden] { display: none; }
-      #load-activities {
-        border: 0;
-        padding: 4px 0;
-        color: #1d4ed8;
-        background: none;
-        font: inherit;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      #load-activities:hover, .criterion-activities a:hover { text-decoration: underline; }
-      #load-activities:disabled { color: #475569; cursor: wait; }
+      .activity-toolbar a { color: #1d4ed8; }
       .criterion-activities { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.45; }
       .criterion-activities ul { margin: 3px 0 0; padding-left: 16px; }
       .criterion-activities a { color: #1d4ed8; overflow-wrap: anywhere; }
@@ -305,8 +312,8 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
         <div id="tab-roadmap" class="tab-content active">
           <div id="roadmap-content"></div>
           <div class="activity-toolbar" ${window.location.hostname === 'ctsv.hust.edu.vn' ? '' : 'hidden'}>
-            <button id="load-activities" type="button">Tìm hoạt động đang mở</button>
             <span id="activity-status" role="status"></span>
+            <a href="https://ctsv.hust.edu.vn/danh-sach-su-kien/" target="_blank" rel="noopener noreferrer">Xem sự kiện trên iCTSV</a>
           </div>
           <div id="roadmap-items"></div>
         </div>
@@ -394,34 +401,12 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
     badge.onclick = () => {
       isPanelOpenState = !panel.classList.contains('open');
       panel.classList.toggle('open', isPanelOpenState);
+      if (isPanelOpenState) loadBundledActivities(shadow);
     };
 
     shadow.getElementById('close-btn').onclick = () => {
       isPanelOpenState = false;
       panel.classList.remove('open');
-    };
-
-    shadow.getElementById('load-activities').onclick = async (event) => {
-      const button = event.currentTarget;
-      const status = shadow.getElementById('activity-status');
-      button.disabled = true;
-      status.textContent = 'Đang kiểm tra mục Sự kiện trên iCTSV…';
-      openActivities = [];
-      showOpenActivities(shadow);
-      try {
-        const { activities, unread } = await loadOpenActivities();
-        openActivities = activities;
-        const count = showOpenActivities(shadow);
-        status.textContent = count
-          ? `Có ${count} hoạt động khớp. Xem thêm trong tab Tiêu chí.`
-          : 'Chưa thấy hoạt động đang mở khớp tiêu chí trong mục Sự kiện.';
-        if (unread) status.textContent += ` Chưa kiểm tra được ${unread} trang chi tiết.`;
-      } catch {
-        status.textContent = 'Chưa tải được mục Sự kiện trên iCTSV. Hãy thử lại.';
-      } finally {
-        button.textContent = 'Làm mới hoạt động';
-        button.disabled = false;
-      }
     };
 
     const tabBtns = shadow.querySelectorAll('.tab-btn');
@@ -490,9 +475,9 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
 
     shadow.getElementById('roadmap-content').innerHTML = `
       <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:10px;" role="status">${roadmapStatus}</p>
+      ${analysis.penaltyDeductions > 0 ? `<p class="roadmap-category-empty">Điểm trừ hiện tại: ${analysis.penaltyDeductions}đ.</p>` : ''}
     `;
-    roadmapContainer.innerHTML = `
-      ${roadmapItems.map(item => `
+    const renderCards = items => items.map(item => `
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div style="font-weight:600; font-size:13px; color:#0f172a; flex:1;">${item.name}</div>
@@ -506,8 +491,35 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
             <button class="btn-toggle-check" data-cid="${item.id}" style="background:#15803d; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Thử tính điểm</button>
           </div>
         </div>
-      `).join('')}
-    `;
+      `).join('');
+
+    roadmapContainer.replaceChildren();
+    const categoryScores = analysis.categoryScores || [];
+    for (const category of categoryScores) {
+      const section = document.createElement('section');
+      section.className = 'roadmap-category';
+      section.innerHTML = '<div class="roadmap-category-header"><h3></h3><span class="roadmap-category-score"></span></div>';
+      section.querySelector('h3').textContent = category.name || 'Điểm theo mục';
+      const score = section.querySelector('.roadmap-category-score');
+      if (category.currentScore !== null) {
+        score.textContent = category.plannedGain > 0
+          ? `${category.currentScore} → ${category.currentScore + category.plannedGain}/${category.maxScore}đ`
+          : `${category.currentScore}/${category.maxScore}đ`;
+      }
+      const items = roadmapItems.filter(item => item.ctId === category.id);
+      if (items.length) {
+        section.insertAdjacentHTML('beforeend', renderCards(items));
+      } else {
+        const message = document.createElement('p');
+        message.className = 'roadmap-category-empty';
+        message.textContent = category.currentScore === null
+          ? `Chưa có dữ liệu · Trần ${category.maxScore}đ`
+          : category.currentScore >= category.maxScore ? 'Đã đạt trần' : 'Chưa có tiêu chí trong lộ trình này';
+        section.append(message);
+      }
+      roadmapContainer.append(section);
+    }
+    if (!categoryScores.length) roadmapContainer.innerHTML = renderCards(roadmapItems);
   }
 
   // Update Tab Criteria lists in-place including Level 0 penalties
@@ -555,7 +567,7 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
     }
   }
 
-  showOpenActivities(shadow);
+  showPublishedActivities(shadow);
 
   // Re-bind dynamic handlers
   shadow.querySelectorAll('.select-priority').forEach(select => {
@@ -585,34 +597,69 @@ function updateHustDrlPanelDOM(shadow, analysis, rawData) {
   });
 }
 
-function showOpenActivities(shadow) {
-  const items = new Map((currentAnalysisState.allItems || []).map(item => [String(item.id), item]));
-  const shown = new Set();
+async function loadBundledActivities(shadow) {
+  const status = shadow.getElementById('activity-status');
+  if (status.parentElement.hidden || activityDataState === 'loading' || activityDataState === 'ready') return;
+
+  activityDataState = 'loading';
+  showPublishedActivities(shadow);
+  try {
+    publicActivitySnapshot = await readPublicActivitySnapshot();
+    activityDataState = 'ready';
+  } catch {
+    publicActivitySnapshot = null;
+    activityDataState = 'error';
+  }
+  showPublishedActivities(document.getElementById('hust-drl-helper-root')?.shadowRoot ?? shadow);
+}
+
+function showPublishedActivities(shadow) {
+  const status = shadow.getElementById('activity-status');
+  const byCriterion = publicActivitySnapshot
+    ? indexCurrentActivities(publicActivitySnapshot.activities, currentAnalysisState.allItems || [])
+    : new Map();
+  if (publicActivitySnapshot) {
+    const updated = new Date(publicActivitySnapshot.updatedAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    status.textContent = `Dữ liệu sự kiện ngày ${updated}.`;
+  } else if (activityDataState !== 'idle') {
+    status.textContent = activityDataState === 'loading' ? 'Đang đọc dữ liệu hoạt động…' : 'Chưa đọc được dữ liệu hoạt động đi kèm.';
+  }
 
   shadow.querySelectorAll('[data-criterion-activities]').forEach(slot => {
-    const item = items.get(slot.dataset.criterionActivities);
-    const criterion = openActivities.length && typeof item?.name === 'string' ? normalizeCriterionName(item.name) : '';
-    const matches = criterion ? openActivities.filter(activity => activity.criteria.includes(criterion)) : [];
+    const matches = byCriterion.get(slot.dataset.criterionActivities);
     slot.replaceChildren();
-    slot.hidden = matches.length === 0;
-    if (slot.hidden) return;
+    slot.removeAttribute('role');
+    slot.hidden = !matches?.size;
+    if (slot.hidden) {
+      if (slot.dataset.criterionActivities !== focusedActivityCriterion || !slot.closest('#tab-all')) return;
+
+      const messages = {
+        loading: 'Đang đọc dữ liệu hoạt động…',
+        ready: 'Bản dữ liệu chưa có hoạt động sắp hoặc đang diễn ra cho tiêu chí này.',
+        error: 'Chưa đọc được dữ liệu hoạt động đi kèm.'
+      };
+      const message = messages[activityDataState];
+      if (message) {
+        slot.setAttribute('role', 'status');
+        slot.textContent = message;
+        slot.hidden = false;
+      }
+      return;
+    }
 
     const list = document.createElement('ul');
-    for (const activity of matches) {
+    for (const activity of matches.values()) {
       const entry = document.createElement('li');
       const link = document.createElement('a');
-      link.href = new URL(activity.path, window.location.origin).href;
+      link.href = `https://ctsv.hust.edu.vn/hoat-dong/${activity.id}/chi-tiet`;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.textContent = activity.name;
       entry.append(link);
       list.append(entry);
-      shown.add(activity.path);
     }
-    slot.append('Hoạt động đang mở', list);
+    slot.append('Hoạt động sắp hoặc đang diễn ra', list);
   });
-
-  return shown.size;
 }
 
 function reAnalyzeAndRender() {
@@ -683,6 +730,9 @@ function scrollToCriteriaOnPage(cId) {
     // Find the item row in the panel and scroll to it
     const rowEl = shadow.querySelector(`.chk-item[data-cid="${cId}"]`)?.closest('.item-row');
     if (rowEl) {
+      focusedActivityCriterion = String(cId);
+      if (activityDataState === 'idle' || activityDataState === 'error') loadBundledActivities(shadow);
+      else showPublishedActivities(shadow);
       if (typeof rowEl.scrollIntoView === 'function') {
         rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }

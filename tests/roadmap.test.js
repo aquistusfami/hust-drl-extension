@@ -1,8 +1,9 @@
 /**
  * @jest-environment jsdom
+ * @jest-environment-options {"url":"https://ctsv.hust.edu.vn/"}
  */
 
-const { analyzeConductScore } = require('../src/core/drl_analyzer');
+const { analyzeConductScore, getRankName } = require('../src/core/drl_analyzer');
 const { renderHustDrlPanel } = require('../src/content/injected_panel');
 const { renderPopupContent } = require('../src/popup/popup');
 
@@ -88,45 +89,61 @@ test('stops suggesting criteria at the highest rank', () => {
   expect(document.getElementById('popup-content').textContent).toContain('Đã đạt Xuất sắc');
 });
 
-test('reads only same-site activity detail links from the iCTSV event cards', () => {
-  const { getActivityLinks } = require('../src/content/activities');
-  document.body.innerHTML = `
-    <div class="slider">
-      <a href="/hoat-dong/100/chi-tiet">Hoạt động A</a>
-      <a href="/hoat-dong/100/chi-tiet">Bản sao</a>
-      <a href="/hoat-dong/101/thanh-vien">Thành viên</a>
-      <a href="https://example.org/hoat-dong/102/chi-tiet">Ngoài iCTSV</a>
-    </div>
-    <a href="/hoat-dong/103/chi-tiet">Ngoài danh sách sự kiện</a>
-    <div class="frame-text-event"><a href="/hoat-dong/104/chi-tiet">Hoạt động B</a></div>
-  `;
+test('indexes current activities by criterion ID and matches legacy IDs by unique names', () => {
+  const { indexCurrentActivities } = require('../src/content/activities');
+  const criteria = [
+    { id: 115, name: 'Sinh hoạt công dân' },
+    { id: 121, name: 'Hỗ trợ cộng đồng' },
+    { id: 122, name: 'Hỗ trợ cộng đồng' }
+  ];
+  const current = {
+    id: 100, endsAt: '2026-12-01T00:00:00+07:00',
+    criteria: [{ id: 115, name: 'Tên cũ' }, { id: 99, name: ' SINH HOẠT  CÔNG DÂN ' }, { id: 98, name: 'Hỗ trợ cộng đồng' }]
+  };
+  const ended = { ...current, id: 101, endsAt: '2026-11-01T00:00:00+07:00' };
 
-  expect(getActivityLinks(document)).toEqual(['/hoat-dong/100/chi-tiet', '/hoat-dong/104/chi-tiet']);
+  const byCriterion = indexCurrentActivities([current, ended], criteria, Date.parse('2026-11-26T10:00:00+07:00'));
+  expect([...byCriterion.keys()]).toEqual(['115']);
+  expect([...byCriterion.get('115').keys()]).toEqual([100]);
 });
 
-test('requires an enabled, visible registration action and an explicit criteria list', () => {
-  const { getOpenActivity } = require('../src/content/activities');
-  document.body.innerHTML = `
-    <h1 class="st-hero-banner__title">Chương trình phục vụ cộng đồng</h1>
-    <section class="ui-section--1"><button class="ui-btn-primary">Đăng ký tham gia</button></section>
-    <section class="ui-section--2"><ul><li>
-      <span class="ac-criteria__num">1</span><span> HỖ TRỢ   HOẠT ĐỘNG CỘNG ĐỒNG </span>
-    </li></ul></section>
-  `;
-  const button = document.querySelector('button');
-  expect(getOpenActivity(document)).toBeNull();
+test('only fetches details for listed, current AIds and reuses recent details', async () => {
+  const { buildPublicActivitySnapshot } = require('../scripts/update-public-activities');
+  const now = new Date('2026-11-26T10:00:00+07:00');
+  const row = {
+    AId: 100, Publish: 1, AName: 'Hoạt động giả lập',
+    StartTime: '2026-11-29 07:00:00', FinishTime: '2026-11-29 10:00:00'
+  };
+  const request = jest.fn(async (endpoint) => endpoint === 'GetPublishActivity'
+    ? {
+      NumberPage: 1,
+      Activities: [row, row, { ...row, AId: 102, Publish: 0 },
+        { ...row, AId: 103, StartTime: '2026-11-01 07:00:00', FinishTime: '2026-11-01 10:00:00' }]
+    }
+    : {
+      Activities: [{ ...row, CreateUser: 'synthetic-user', CriteriaLst: [{ CId: 115, CName: 'Sinh hoạt công dân' }] }]
+    }
+  );
 
-  button.getClientRects = () => [button.getBoundingClientRect()];
-  expect(getOpenActivity(document)).toEqual({
-    name: 'Chương trình phục vụ cộng đồng',
-    criteria: ['hỗ trợ hoạt động cộng đồng']
-  });
+  const { snapshot, catalogRequests, detailRequests } = await buildPublicActivitySnapshot({}, request, now);
+  expect([catalogRequests, detailRequests]).toEqual([1, 1]);
+  expect(request.mock.calls).toEqual([
+    ['GetPublishActivity', { PageNumber: 1, NumberRow: 1000 }],
+    ['GetActivityById', { AId: 100 }]
+  ]);
+  expect(snapshot.activities).toEqual([{
+    id: 100,
+    name: 'Hoạt động giả lập',
+    startsAt: '2026-11-29T07:00:00+07:00',
+    endsAt: '2026-11-29T10:00:00+07:00',
+    criteria: [{ id: 115, name: 'Sinh hoạt công dân' }],
+    criteriaCheckedAt: now.toISOString()
+  }]);
 
-  button.disabled = true;
-  expect(getOpenActivity(document)).toBeNull();
-  button.disabled = false;
-  button.textContent = 'Đã đăng ký';
-  expect(getOpenActivity(document)).toBeNull();
+  request.mockClear();
+  const secondRun = await buildPublicActivitySnapshot(snapshot, request, new Date(+now + 60000));
+  expect(secondRun.detailRequests).toBe(0);
+  expect(request).toHaveBeenCalledTimes(1);
 });
 
 test('captures only score data and cleans older browser snapshots', () => {
@@ -155,4 +172,112 @@ test('captures only score data and cleans older browser snapshots', () => {
   localStorage.setItem(key, JSON.stringify(withUnrelatedFields));
   initHustDrlHelper();
   expect(JSON.parse(localStorage.getItem(key))).toEqual(scoreData);
+});
+
+test('chooses fewer criteria at the same difficulty under shared caps', () => {
+  const data = {
+    CriteriaTypeDetailsLst: [{
+      CTId: 6, CTMaxPoint: 100,
+      CriteriaGroupDetailsLst: [
+        { CGId: 1, CGMaxPoint: 60, UserCriteriaDetailsLst: [{ CId: 150, UCPoint: 60, CMaxPoint: 60 }] },
+        {
+          CGId: 2, CGMaxPoint: 8,
+          UserCriteriaDetailsLst: [{ CId: 114, CMaxPoint: 7 }, { CId: 115, CMaxPoint: 6 }]
+        },
+        { CGId: 3, CGMaxPoint: 5, UserCriteriaDetailsLst: [{ CId: 117, CMaxPoint: 5 }] }
+      ]
+    }]
+  };
+
+  const result = analyzeConductScore(data);
+  expect(result.roadmapItems).toHaveLength(2);
+  expect(result.roadmapItems.map(item => item.id)).toContain(117);
+  expect(result.projectedScore).toBeGreaterThanOrEqual(70);
+});
+
+test('prefers easier criteria even if a harder option would reach the target alone', () => {
+  const data = {
+    CriteriaTypeDetailsLst: [{
+      CTId: 6, CTMaxPoint: 100,
+      CriteriaGroupDetailsLst: [{
+        CGId: 1, CGMaxPoint: 100,
+        UserCriteriaDetailsLst: [
+          { CId: 150, UCPoint: 66, CMaxPoint: 66 },
+          { CId: 114, CMaxPoint: 2 }, { CId: 115, CMaxPoint: 2 }, { CId: 124, CMaxPoint: 4 }
+        ]
+      }]
+    }]
+  };
+
+  const result = analyzeConductScore(data);
+  expect(result.projectedScore).toBe(70);
+  expect(result.roadmapItems.map(item => item.id)).toEqual([114, 115]);
+});
+
+test('displays the five main categories and leaves missing category scores unknown', () => {
+  const data = criteriaData(66, true);
+  data.CriteriaTypeDetailsLst[0].CTId = 6;
+  data.CriteriaTypeDetailsLst[1].CTId = 9;
+  const roadmap = renderRoadmap(data);
+  const categories = [...roadmap.querySelectorAll('.roadmap-category')];
+
+  expect(categories.map(category => category.querySelector('h3').textContent)).toEqual([
+    'Pháp luật và nội quy', 'Học tập', 'Hoạt động chính trị, xã hội, văn hóa, thể thao',
+    'Trách nhiệm với cộng đồng', 'Công tác tập thể và thành tích'
+  ]);
+  expect(categories[0].textContent).toContain('Tiêu chí A');
+  expect(categories[0].textContent).toContain('66 → 69/100đ');
+  expect(categories[1].textContent).toContain('Chưa có dữ liệu · Trần 20đ');
+  expect(categories[3].textContent).toContain('Tiêu chí C');
+});
+
+test('uses the self-assessed score when it is zero', () => {
+  const data = criteriaData(0, true);
+  data.CriteriaTypeDetailsLst[0].CriteriaGroupDetailsLst[0].UserCriteriaDetailsLst[0].TCPoint = 3;
+  expect(analyzeConductScore(data).currentScore).toBe(0);
+});
+
+test('labels the 80-point rank Tốt in the analysis and in stored popup results', () => {
+  expect(getRankName(79)).toBe('Khá');
+  expect(getRankName(80)).toBe('Tốt');
+  expect(getRankName(89)).toBe('Tốt');
+  expect(getRankName(90)).toBe('Xuất sắc');
+
+  renderPopupContent({ currentScore: 84, rank: 'Giỏi', targetScore: 90, scoreNeeded: 6 });
+  expect(document.getElementById('popup-content').textContent).toContain('84 / 100đ (Tốt)');
+});
+
+test('reads the packaged snapshot once and shows activities under the corresponding criterion', async () => {
+  const activities = require('../src/content/activities');
+  global.indexCurrentActivities = activities.indexCurrentActivities;
+  global.readPublicActivitySnapshot = jest.fn().mockResolvedValue({
+    updatedAt: new Date().toISOString(),
+    activities: [{
+      id: 100, name: 'Hoạt động giả lập', endsAt: new Date(Date.now() + 3600000).toISOString(),
+      criteria: [{ id: 121, name: 'Tiêu chí C' }]
+    }]
+  });
+
+  try {
+    const roadmap = renderRoadmap(criteriaData(66, true));
+    const shadow = roadmap.getRootNode();
+    const criteriaTab = shadow.getElementById('tab-all');
+
+    roadmap.querySelector('.btn-scroll[data-cid="121"]').click();
+    expect(criteriaTab.classList.contains('active')).toBe(true);
+    const activitySlot = criteriaTab.querySelector('[data-criterion-activities="121"]');
+    expect(activitySlot.textContent).toContain('Đang đọc dữ liệu hoạt động');
+
+    await Promise.resolve();
+    expect(activitySlot.querySelector('a').pathname).toBe('/hoat-dong/100/chi-tiet');
+    expect(activitySlot.querySelector('a').textContent).toBe('Hoạt động giả lập');
+
+    shadow.querySelector('[data-tab="tab-roadmap"]').click();
+    roadmap.querySelector('.btn-scroll[data-cid="114"]').click();
+    expect(criteriaTab.querySelector('[data-criterion-activities="114"]').textContent).toContain('Bản dữ liệu chưa có hoạt động');
+    expect(global.readPublicActivitySnapshot).toHaveBeenCalledTimes(1);
+  } finally {
+    delete global.readPublicActivitySnapshot;
+    delete global.indexCurrentActivities;
+  }
 });

@@ -12,7 +12,8 @@ function renderPopupContent(data) {
     return;
   }
 
-  const targetRankTitle = data.targetRankName || 'Khá';
+  const rank = data.rank === 'Giỏi' ? 'Tốt' : data.rank;
+  const targetRankTitle = data.targetRankName === 'Giỏi' ? 'Tốt' : data.targetRankName || 'Khá';
   const popupTargetText = data.currentScore >= 90
     ? `Đã đạt Xuất sắc (<b>${data.currentScore}/100đ</b>)`
     : `Cần thêm <b>${data.scoreNeeded}đ</b> để đạt mốc <b>${targetRankTitle} (${data.targetScore}đ)</b>.`;
@@ -26,7 +27,7 @@ function renderPopupContent(data) {
   }
 
   contentEl.innerHTML = `
-    <div class="score-badge">${data.currentScore} / 100đ (${data.rank})</div>
+    <div class="score-badge">${data.currentScore} / 100đ (${rank})</div>
     <p style="font-size:13px; color:#475569; margin-top:8px;">
       ${popupTargetText}
     </p>
